@@ -13,17 +13,18 @@ export default function Home() {
   const { turnos, diaActual, agregarTurno, eliminarTurno, obtenerHorariosDisponibles } = useTurnos()
 
   const compartir = () => {
-    const mensaje = `💈 Caracas Alcon Barber – Agenda tu corte con estilo aquí:\n${window.location.href}`
+    const urlPagina = window.location.href
+    const mensaje = `💈 Caracas Alcon Barber – Agenda tu corte con estilo aquí: ${urlPagina}`
 
     if (navigator.share) {
       navigator.share({
         title: "Caracas Alcon Barber 💈",
-        text: mensaje,
-        url: window.location.href,
+        text: "Agenda tu corte con estilo 🔥",
+        url: urlPagina,
       })
     } else {
       navigator.clipboard
-        .writeText(mensaje)
+        .writeText(urlPagina)
         .then(() => alert("Enlace copiado. Puedes compartirlo en WhatsApp o redes."))
         .catch(() => alert("Tu navegador no permite copiar automáticamente."))
     }
@@ -33,7 +34,7 @@ export default function Home() {
     <div
       className="min-h-screen bg-cover bg-center bg-fixed text-white"
       style={{
-        backgroundImage: "linear-gradient(rgba(0,0,0,0.8), rgba(15,15,15,0.8)), url(/barbershop-bg.jpg)",
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.6), rgba(15,15,15,0.7)), url(/barbershop-new-bg.jpg)",
       }}
     >
       <div className="min-h-screen">
@@ -96,6 +97,15 @@ export default function Home() {
                 height={200}
                 className="rounded-2xl border-2 border-cyan-400 shadow-lg shadow-cyan-400/30"
               />
+            </div>
+          </div>
+
+          {/* Logo de máquina de peluquería */}
+          <div className="text-center mt-8">
+            <div className="inline-block bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 border border-cyan-400/30 shadow-lg shadow-cyan-400/20">
+              <div className="text-6xl mb-2">✂️</div>
+              <p className="text-cyan-400 font-bold">Equipos Profesionales</p>
+              <p className="text-white/70 text-sm">Máquinas de última generación</p>
             </div>
           </div>
         </div>

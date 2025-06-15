@@ -4,12 +4,15 @@ import { useState, useEffect } from "react"
 import type { DiasSemana } from "@/types"
 
 const HORARIOS_DISPONIBLES = [
+  // Mañana: 8:00 AM a 12:00 PM (cada 40 minutos)
   "8:00 AM",
   "8:40 AM",
   "9:20 AM",
   "10:00 AM",
   "10:40 AM",
   "11:20 AM",
+  "12:00 PM",
+  // Tarde: 2:00 PM a 8:00 PM (cada 40 minutos)
   "2:00 PM",
   "2:40 PM",
   "3:20 PM",
@@ -19,6 +22,7 @@ const HORARIOS_DISPONIBLES = [
   "6:00 PM",
   "6:40 PM",
   "7:20 PM",
+  "8:00 PM",
 ]
 
 const DIAS_SEMANA: DiasSemana[] = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
