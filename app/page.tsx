@@ -86,16 +86,16 @@ export default function Home() {
             <p className="text-white/70">Hecho para Caracas | ChatGPT & Kevin Flórez</p>
           </div>
 
-          {/* Foto del dueño */}
+          {/* Logo de Alcon Barber */}
           <div className="text-center">
-            <h3 className="text-xl font-bold mb-4">El dueño – Caracas 💈</h3>
+            <h3 className="text-xl font-bold mb-4">Alcon Barber – Profesionales en Estilo 💈</h3>
             <div className="inline-block">
               <Image
-                src="/owner-photo.jpg"
-                alt="Dueño de los cortes"
-                width={200}
-                height={200}
-                className="rounded-2xl border-2 border-cyan-400 shadow-lg shadow-cyan-400/30"
+                src="/alcon-barber-logo.jpg"
+                alt="Logo Alcon Barber"
+                width={250}
+                height={250}
+                className="rounded-full border-4 border-yellow-400 shadow-lg shadow-yellow-400/30"
               />
             </div>
           </div>
