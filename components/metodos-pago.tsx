@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreditCard, Banknote, Copy, Check, ExternalLink, Globe } from "lucide-react"
+import { CreditCard, Banknote, ExternalLink, ArrowRight, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import type { ServicioPago, MetodoPago, ConfiguracionApp } from "@/types"
 
@@ -15,11 +15,18 @@ interface MetodosPagoProps {
 
 export default function MetodosPago({ configuracion }: MetodosPagoProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
+  const [pasoActual, setPasoActual] = useState<"seleccion" | "datos" | "transferencia">("seleccion")
   const [servicioSeleccionado, setServicioSeleccionado] = useState<ServicioPago | null>(null)
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<MetodoPago | null>(null)
   const [nombreCliente, setNombreCliente] = useState("")
   const [numeroCliente, setNumeroCliente] = useState("")
   const [copiado, setCopiado] = useState(false)
+
+  // Estados para datos de transferencia
+  const [numeroTransferencia, setNumeroTransferencia] = useState("")
+  const [montoTransferencia, setMontoTransferencia] = useState("")
+  const [fechaTransferencia, setFechaTransferencia] = useState("")
+  const [horaTransferencia, setHoraTransferencia] = useState("")
 
   const METODOS_PAGO: MetodoPago[] = [
     {
@@ -66,6 +73,7 @@ export default function MetodosPago({ configuracion }: MetodosPagoProps) {
 
   const seleccionarServicio = (servicio: ServicioPago) => {
     setServicioSeleccionado(servicio)
+    setPasoActual("seleccion")
     setDialogAbierto(true)
   }
 
@@ -79,45 +87,40 @@ export default function MetodosPago({ configuracion }: MetodosPagoProps) {
     }
   }
 
-  const procesarPago = () => {
-    if (!servicioSeleccionado || !metodoSeleccionado || !nombreCliente || !numeroCliente) {
+  const continuarADatos = () => {
+    if (!metodoSeleccionado) {
+      alert("Por favor selecciona un método de pago")
+      return
+    }
+    setPasoActual("datos")
+  }
+
+  const continuarATransferencia = () => {
+    if (!nombreCliente || !numeroCliente) {
       alert("Por favor completa todos los campos")
       return
     }
 
-    let mensaje = ""
+    if (metodoSeleccionado?.tipo === "efectivo") {
+      // Para efectivo, ir directo a confirmar
+      confirmarPago()
+    } else if (metodoSeleccionado?.tipo === "pse") {
+      // Para PSE, solicitar enlace
+      solicitarEnlacePSE()
+    } else {
+      // Para Nequi y Bancolombia, ir a datos de transferencia
+      setPasoActual("transferencia")
+    }
+  }
 
-    if (metodoSeleccionado.tipo === "nequi") {
-      mensaje = `💜 PAGO CON NEQUI
+  const volverAPaso = (paso: "seleccion" | "datos" | "transferencia") => {
+    setPasoActual(paso)
+  }
 
-🛒 Servicio: ${servicioSeleccionado.nombre}
-💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
-👤 Cliente: ${nombreCliente}
-📱 WhatsApp: ${numeroCliente}
+  const solicitarEnlacePSE = () => {
+    if (!servicioSeleccionado || !metodoSeleccionado || !nombreCliente || !numeroCliente) return
 
-📲 DATOS PARA NEQUI:
-Número: ${metodoSeleccionado.numero}
-Monto: $${servicioSeleccionado.precio.toLocaleString()}
-
-✅ Voy a enviar el pago por Nequi ahora mismo.
-Por favor confirma cuando recibas la transferencia.`
-    } else if (metodoSeleccionado.tipo === "bancolombia") {
-      mensaje = `🏦 TRANSFERENCIA BANCOLOMBIA
-
-🛒 Servicio: ${servicioSeleccionado.nombre}
-💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
-👤 Cliente: ${nombreCliente}
-📱 WhatsApp: ${numeroCliente}
-
-🏧 DATOS PARA TRANSFERENCIA:
-Cuenta Ahorros: ${metodoSeleccionado.numero}
-Banco: Bancolombia
-Monto: $${servicioSeleccionado.precio.toLocaleString()}
-
-✅ Voy a hacer la transferencia ahora.
-Te envío el comprobante cuando esté listo.`
-    } else if (metodoSeleccionado.tipo === "pse") {
-      mensaje = `💳 PAGO CON PSE
+    const mensaje = `💳 SOLICITUD DE PAGO PSE
 
 🛒 Servicio: ${servicioSeleccionado.nombre}
 💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
@@ -126,7 +129,18 @@ Te envío el comprobante cuando esté listo.`
 
 🌐 Quiero pagar con PSE (Pagos Seguros en Línea)
 Por favor envíame el enlace de pago seguro para completar la transacción desde mi banco.`
-    } else if (metodoSeleccionado.tipo === "efectivo") {
+
+    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
+    limpiarFormulario()
+    alert("¡Excelente! Te enviaremos el enlace de PSE por WhatsApp para que pagues desde tu banco.")
+  }
+
+  const confirmarPago = () => {
+    if (!servicioSeleccionado || !metodoSeleccionado || !nombreCliente || !numeroCliente) return
+
+    let mensaje = ""
+
+    if (metodoSeleccionado.tipo === "efectivo") {
       mensaje = `💵 PAGO EN EFECTIVO
 
 🛒 Servicio: ${servicioSeleccionado.nombre}
@@ -136,35 +150,53 @@ Por favor envíame el enlace de pago seguro para completar la transacción desde
 
 💰 Voy a pagar en efectivo en la barbería.
 Por favor confirma mi cita y la disponibilidad.`
+    } else {
+      // Para Nequi y Bancolombia con datos de transferencia
+      mensaje = `${metodoSeleccionado.tipo === "nequi" ? "💜 PAGO CON NEQUI" : "🏦 TRANSFERENCIA BANCOLOMBIA"}
+
+🛒 Servicio: ${servicioSeleccionado.nombre}
+💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+👤 Cliente: ${nombreCliente}
+📱 WhatsApp: ${numeroCliente}
+
+💸 DATOS DE LA TRANSFERENCIA:
+${metodoSeleccionado.tipo === "nequi" ? "Número Nequi:" : "Cuenta:"} ${metodoSeleccionado.numero}
+Número de transferencia: ${numeroTransferencia}
+Monto enviado: $${montoTransferencia}
+Fecha: ${fechaTransferencia}
+Hora: ${horaTransferencia}
+
+✅ Transferencia realizada. Por favor confirma cuando recibas el pago.`
     }
 
-    // Abrir WhatsApp con el mensaje
     window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
+    limpiarFormulario()
 
-    // Limpiar formulario
-    setNombreCliente("")
-    setNumeroCliente("")
-    setMetodoSeleccionado(null)
-    setDialogAbierto(false)
-
-    // Mensaje de confirmación específico
     if (metodoSeleccionado.tipo === "nequi") {
-      alert("¡Perfecto! Ahora puedes abrir Nequi y enviar el pago. Ya enviamos tu solicitud por WhatsApp.")
+      alert("¡Perfecto! Hemos recibido los datos de tu transferencia Nequi. Te contactaremos para confirmar.")
     } else if (metodoSeleccionado.tipo === "bancolombia") {
-      alert("¡Listo! Ahora puedes hacer la transferencia por Bancolombia. Ya enviamos los datos por WhatsApp.")
-    } else if (metodoSeleccionado.tipo === "pse") {
-      alert("¡Excelente! Te enviaremos el enlace de PSE por WhatsApp para que pagues desde tu banco.")
+      alert("¡Excelente! Hemos recibido los datos de tu transferencia Bancolombia. Te contactaremos para confirmar.")
     } else {
       alert("¡Perfecto! Tu solicitud fue enviada. Te contactaremos para confirmar.")
     }
   }
 
+  const limpiarFormulario = () => {
+    setNombreCliente("")
+    setNumeroCliente("")
+    setNumeroTransferencia("")
+    setMontoTransferencia("")
+    setFechaTransferencia("")
+    setHoraTransferencia("")
+    setMetodoSeleccionado(null)
+    setPasoActual("seleccion")
+    setDialogAbierto(false)
+  }
+
   const abrirEnlaceDirecto = () => {
     if (metodoSeleccionado?.enlaceDirecto) {
       if (metodoSeleccionado.tipo === "nequi") {
-        // Intenta abrir la app de Nequi primero
         window.open(`nequi://send?phone=${metodoSeleccionado.numero}&amount=${servicioSeleccionado?.precio}`, "_self")
-        // Fallback a la web de Nequi
         setTimeout(() => {
           window.open(metodoSeleccionado.enlaceDirecto, "_blank")
         }, 1000)
@@ -172,20 +204,6 @@ Por favor confirma mi cita y la disponibilidad.`
         window.open(metodoSeleccionado.enlaceDirecto, "_blank")
       }
     }
-  }
-
-  const generarEnlacePSE = () => {
-    if (!servicioSeleccionado || !nombreCliente) return "#"
-
-    // Simulación de enlace PSE (en producción sería un enlace real de PSE)
-    const parametros = new URLSearchParams({
-      amount: servicioSeleccionado.precio.toString(),
-      description: `${servicioSeleccionado.nombre} - Caracas Alcon Barber`,
-      customer_name: nombreCliente,
-      customer_phone: numeroCliente,
-    })
-
-    return `https://checkout.pse.com.co/payment?${parametros.toString()}`
   }
 
   return (
@@ -243,12 +261,16 @@ Por favor confirma mi cita y la disponibilidad.`
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
         <DialogContent className="bg-gray-900 border-cyan-400/30 max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">💳 Realizar Pago</DialogTitle>
+            <DialogTitle className="text-white">
+              {pasoActual === "seleccion" && "💳 Seleccionar Método de Pago"}
+              {pasoActual === "datos" && "👤 Datos del Cliente"}
+              {pasoActual === "transferencia" && "💸 Datos de la Transferencia"}
+            </DialogTitle>
           </DialogHeader>
 
           {servicioSeleccionado && (
             <div className="space-y-4">
-              {/* Resumen del servicio */}
+              {/* Resumen del servicio - siempre visible */}
               <div className="bg-gray-800/60 p-4 rounded border border-cyan-400/20">
                 <h3 className="text-white font-semibold mb-2">{servicioSeleccionado.nombre}</h3>
                 <p className="text-white/70 text-sm mb-2">{servicioSeleccionado.descripcion}</p>
@@ -260,156 +282,244 @@ Por favor confirma mi cita y la disponibilidad.`
                 </div>
               </div>
 
-              {/* Datos del cliente */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-white text-sm font-medium mb-2 block">Tu nombre:</label>
-                  <Input
-                    value={nombreCliente}
-                    onChange={(e) => setNombreCliente(e.target.value)}
-                    placeholder="Ingresa tu nombre completo"
-                    className="bg-gray-800 border-cyan-400/30 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-white text-sm font-medium mb-2 block">Tu WhatsApp:</label>
-                  <Input
-                    value={numeroCliente}
-                    onChange={(e) => setNumeroCliente(e.target.value)}
-                    placeholder="Ej: 3167530191"
-                    className="bg-gray-800 border-cyan-400/30 text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Métodos de pago */}
-              <div>
-                <label className="text-white text-sm font-medium mb-3 block">Método de pago:</label>
-                <div className="space-y-2">
-                  {METODOS_PAGO.map((metodo) => (
-                    <div
-                      key={metodo.id}
-                      className={`p-3 rounded border cursor-pointer transition-all ${
-                        metodoSeleccionado?.id === metodo.id
-                          ? "border-cyan-400 bg-cyan-400/10"
-                          : "border-gray-600 hover:border-cyan-400/50"
-                      }`}
-                      onClick={() => setMetodoSeleccionado(metodo)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {metodo.logo ? (
-                          <div className="w-8 h-8 relative flex-shrink-0">
-                            <Image
-                              src={metodo.logo || "/placeholder.svg"}
-                              alt={metodo.nombre}
-                              fill
-                              className="object-contain rounded"
-                            />
+              {/* PASO 1: Selección de método de pago */}
+              {pasoActual === "seleccion" && (
+                <>
+                  <div>
+                    <label className="text-white text-sm font-medium mb-3 block">Método de pago:</label>
+                    <div className="space-y-2">
+                      {METODOS_PAGO.map((metodo) => (
+                        <div
+                          key={metodo.id}
+                          className={`p-3 rounded border cursor-pointer transition-all ${
+                            metodoSeleccionado?.id === metodo.id
+                              ? "border-cyan-400 bg-cyan-400/10"
+                              : "border-gray-600 hover:border-cyan-400/50"
+                          }`}
+                          onClick={() => setMetodoSeleccionado(metodo)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {metodo.logo ? (
+                              <div className="w-8 h-8 relative flex-shrink-0">
+                                <Image
+                                  src={metodo.logo || "/placeholder.svg"}
+                                  alt={metodo.nombre}
+                                  fill
+                                  className="object-contain rounded"
+                                />
+                              </div>
+                            ) : (
+                              <>{metodo.tipo === "efectivo" && <Banknote className="h-5 w-5 text-green-400" />}</>
+                            )}
+                            <div className="flex-1">
+                              <p className="text-white font-medium">{metodo.nombre}</p>
+                              {metodo.numero && (
+                                <p className="text-white/70 text-sm">
+                                  {metodo.tipo === "nequi" ? "Nequi:" : "Cuenta:"} {metodo.numero}
+                                </p>
+                              )}
+                              {metodo.tipo === "pse" && (
+                                <p className="text-green-400 text-sm">✅ Todos los bancos colombianos</p>
+                              )}
+                            </div>
                           </div>
-                        ) : (
-                          <>{metodo.tipo === "efectivo" && <Banknote className="h-5 w-5 text-green-400" />}</>
-                        )}
-                        <div className="flex-1">
-                          <p className="text-white font-medium">{metodo.nombre}</p>
-                          {metodo.numero && (
-                            <p className="text-white/70 text-sm">
-                              {metodo.tipo === "nequi" ? "Nequi:" : "Cuenta:"} {metodo.numero}
-                            </p>
-                          )}
-                          {metodo.tipo === "pse" && (
-                            <p className="text-green-400 text-sm">✅ Todos los bancos colombianos</p>
-                          )}
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Información del método seleccionado */}
-              {metodoSeleccionado && (
-                <div className="bg-blue-900/30 border border-blue-600/30 rounded p-3">
-                  <p className="text-blue-200 text-sm mb-2">
-                    <strong>Instrucciones:</strong>
-                  </p>
-                  <p className="text-blue-100 text-sm mb-3">{metodoSeleccionado.instrucciones}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setDialogAbierto(false)}
+                      variant="outline"
+                      className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={continuarADatos}
+                      disabled={!metodoSeleccionado}
+                      className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
+                    >
+                      Aceptar
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </>
+              )}
 
-                  {metodoSeleccionado.numero && (
-                    <div className="flex items-center gap-2 mb-3">
+              {/* PASO 2: Datos del cliente */}
+              {pasoActual === "datos" && metodoSeleccionado && (
+                <>
+                  <div className="bg-blue-900/30 border border-blue-600/30 rounded p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      {metodoSeleccionado.logo ? (
+                        <div className="w-6 h-6 relative">
+                          <Image
+                            src={metodoSeleccionado.logo || "/placeholder.svg"}
+                            alt={metodoSeleccionado.nombre}
+                            fill
+                            className="object-contain rounded"
+                          />
+                        </div>
+                      ) : (
+                        <Banknote className="h-5 w-5 text-green-400" />
+                      )}
+                      <p className="text-blue-200 font-medium">Método seleccionado: {metodoSeleccionado.nombre}</p>
+                    </div>
+                    {metodoSeleccionado.numero && (
+                      <p className="text-blue-100 text-sm">
+                        {metodoSeleccionado.tipo === "nequi" ? "Número:" : "Cuenta:"} {metodoSeleccionado.numero}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">Tu nombre:</label>
                       <Input
-                        value={metodoSeleccionado.numero}
-                        readOnly
-                        className="bg-gray-800 border-cyan-400/30 text-white text-sm"
+                        value={nombreCliente}
+                        onChange={(e) => setNombreCliente(e.target.value)}
+                        placeholder="Ingresa tu nombre completo"
+                        className="bg-gray-800 border-cyan-400/30 text-white"
                       />
-                      <Button
-                        onClick={() => copiarNumero(metodoSeleccionado.numero!)}
-                        size="sm"
-                        variant="outline"
-                        className="border-cyan-400/30 text-white hover:bg-cyan-400/10"
-                      >
-                        {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      </Button>
                     </div>
-                  )}
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">Tu WhatsApp:</label>
+                      <Input
+                        value={numeroCliente}
+                        onChange={(e) => setNumeroCliente(e.target.value)}
+                        placeholder="Ej: 3167530191"
+                        className="bg-gray-800 border-cyan-400/30 text-white"
+                      />
+                    </div>
+                  </div>
 
-                  {metodoSeleccionado.enlaceDirecto && (
-                    <div className="flex gap-2">
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => volverAPaso("seleccion")}
+                      variant="outline"
+                      className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Volver
+                    </Button>
+                    <Button
+                      onClick={continuarATransferencia}
+                      disabled={!nombreCliente || !numeroCliente}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
+                    >
+                      {metodoSeleccionado.tipo === "efectivo"
+                        ? "Confirmar"
+                        : metodoSeleccionado.tipo === "pse"
+                          ? "Solicitar PSE"
+                          : "Continuar"}
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* PASO 3: Datos de transferencia (solo para Nequi y Bancolombia) */}
+              {pasoActual === "transferencia" && metodoSeleccionado && (
+                <>
+                  <div className="bg-green-900/30 border border-green-600/30 rounded p-3">
+                    <p className="text-green-200 text-sm mb-2">
+                      <strong>Instrucciones:</strong>
+                    </p>
+                    <p className="text-green-100 text-sm mb-3">
+                      {metodoSeleccionado.tipo === "nequi"
+                        ? `Envía $${servicioSeleccionado.precio.toLocaleString()} al número ${
+                            metodoSeleccionado.numero
+                          } por Nequi y luego completa los datos de la transferencia.`
+                        : `Transfiere $${servicioSeleccionado.precio.toLocaleString()} a la cuenta ${
+                            metodoSeleccionado.numero
+                          } de Bancolombia y luego completa los datos.`}
+                    </p>
+
+                    {metodoSeleccionado.enlaceDirecto && (
                       <Button
                         onClick={abrirEnlaceDirecto}
                         size="sm"
-                        className={`flex-1 text-white font-bold ${
+                        className={`w-full text-white font-bold ${
                           metodoSeleccionado.tipo === "nequi"
                             ? "bg-purple-600 hover:bg-purple-700"
-                            : metodoSeleccionado.tipo === "bancolombia"
-                              ? "bg-yellow-600 hover:bg-yellow-700"
-                              : "bg-blue-600 hover:bg-blue-700"
+                            : "bg-yellow-600 hover:bg-yellow-700"
                         }`}
                       >
                         <ExternalLink className="h-4 w-4 mr-1" />
                         Abrir {metodoSeleccionado.nombre}
                       </Button>
+                    )}
+                  </div>
 
-                      {metodoSeleccionado.tipo === "pse" && nombreCliente && (
-                        <Button
-                          onClick={() => window.open(generarEnlacePSE(), "_blank")}
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 text-white font-bold"
-                        >
-                          <Globe className="h-4 w-4 mr-1" />
-                          Pago Rápido
-                        </Button>
-                      )}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Número de transferencia / Referencia:
+                      </label>
+                      <Input
+                        value={numeroTransferencia}
+                        onChange={(e) => setNumeroTransferencia(e.target.value)}
+                        placeholder="Ej: 123456789"
+                        className="bg-gray-800 border-cyan-400/30 text-white"
+                      />
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* Botones */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setDialogAbierto(false)}
-                  variant="outline"
-                  className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={procesarPago}
-                  disabled={!metodoSeleccionado || !nombreCliente || !numeroCliente}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
-                >
-                  <CreditCard className="h-4 w-4 mr-1" />
-                  {metodoSeleccionado?.tipo === "pse"
-                    ? "Solicitar Enlace PSE"
-                    : metodoSeleccionado?.tipo === "nequi"
-                      ? "Pagar con Nequi"
-                      : metodoSeleccionado?.tipo === "bancolombia"
-                        ? "Transferir Bancolombia"
-                        : metodoSeleccionado?.tipo === "efectivo"
-                          ? "Confirmar Pago en Efectivo"
-                          : "Solicitar Pago"}
-                </Button>
-              </div>
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">Monto enviado:</label>
+                      <Input
+                        value={montoTransferencia}
+                        onChange={(e) => setMontoTransferencia(e.target.value.replace(/\D/g, ""))}
+                        placeholder={servicioSeleccionado.precio.toString()}
+                        className="bg-gray-800 border-cyan-400/30 text-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-white text-sm font-medium mb-2 block">Fecha:</label>
+                        <Input
+                          type="date"
+                          value={fechaTransferencia}
+                          onChange={(e) => setFechaTransferencia(e.target.value)}
+                          className="bg-gray-800 border-cyan-400/30 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm font-medium mb-2 block">Hora:</label>
+                        <Input
+                          type="time"
+                          value={horaTransferencia}
+                          onChange={(e) => setHoraTransferencia(e.target.value)}
+                          className="bg-gray-800 border-cyan-400/30 text-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => volverAPaso("datos")}
+                      variant="outline"
+                      className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
+                      Volver
+                    </Button>
+                    <Button
+                      onClick={confirmarPago}
+                      disabled={
+                        !numeroTransferencia || !montoTransferencia || !fechaTransferencia || !horaTransferencia
+                      }
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
+                    >
+                      <CreditCard className="h-4 w-4 mr-1" />
+                      Confirmar Pago
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>
