@@ -7,76 +7,54 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreditCard, Banknote, Copy, Check, ExternalLink, Globe } from "lucide-react"
 import Image from "next/image"
-import type { ServicioPago, MetodoPago } from "@/types"
+import type { ServicioPago, MetodoPago, ConfiguracionApp } from "@/types"
 
-const SERVICIOS: ServicioPago[] = [
-  {
-    id: "1",
-    nombre: "Corte con Diseño",
-    precio: 20000,
-    descripcion: "Corte moderno con diseños personalizados y acabado profesional",
-    duracion: "40 min",
-    popular: true,
-  },
-  {
-    id: "2",
-    nombre: "Corte con Barba",
-    precio: 28000,
-    descripcion: "Corte completo + arreglo de barba con técnicas profesionales",
-    duracion: "60 min",
-    popular: true,
-  },
-  {
-    id: "3",
-    nombre: "Corte para Niños",
-    precio: 18000,
-    descripcion: "Corte especial para niños con paciencia y cuidado",
-    duracion: "30 min",
-  },
-]
+interface MetodosPagoProps {
+  configuracion: ConfiguracionApp
+}
 
-const METODOS_PAGO: MetodoPago[] = [
-  {
-    id: "nequi",
-    nombre: "Nequi",
-    tipo: "nequi",
-    numero: "3167530191",
-    logo: "/nequi-logo.png",
-    instrucciones: "Envía el pago a este número de Nequi y comparte el comprobante por WhatsApp",
-    enlaceDirecto: "https://nequi.com.co/",
-  },
-  {
-    id: "bancolombia",
-    nombre: "Bancolombia",
-    tipo: "bancolombia",
-    numero: "12345678901",
-    logo: "/bancolombia-logo.png",
-    instrucciones: "Transfiere a esta cuenta de ahorros Bancolombia y envía el comprobante",
-    enlaceDirecto: "https://www.bancolombia.com/personas",
-  },
-  {
-    id: "pse",
-    nombre: "PSE - Pagos Seguros en Línea",
-    tipo: "pse",
-    logo: "/pse-logo.png",
-    instrucciones: "Paga desde cualquier banco colombiano de forma segura y rápida",
-    enlaceDirecto: "https://www.pse.com.co/",
-  },
-  {
-    id: "efectivo",
-    nombre: "Efectivo",
-    tipo: "efectivo",
-    instrucciones: "Paga directamente en la barbería al momento del servicio",
-  },
-]
-
-export default function MetodosPago() {
+export default function MetodosPago({ configuracion }: MetodosPagoProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
   const [servicioSeleccionado, setServicioSeleccionado] = useState<ServicioPago | null>(null)
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<MetodoPago | null>(null)
   const [nombreCliente, setNombreCliente] = useState("")
   const [numeroCliente, setNumeroCliente] = useState("")
   const [copiado, setCopiado] = useState(false)
+
+  const METODOS_PAGO: MetodoPago[] = [
+    {
+      id: "nequi",
+      nombre: "Nequi",
+      tipo: "nequi",
+      numero: configuracion.numeroNequi,
+      logo: "/nequi-logo.png",
+      instrucciones: "Envía el pago a este número de Nequi y comparte el comprobante por WhatsApp",
+      enlaceDirecto: "https://nequi.com.co/",
+    },
+    {
+      id: "bancolombia",
+      nombre: "Bancolombia",
+      tipo: "bancolombia",
+      numero: configuracion.cuentaBancolombia,
+      logo: "/bancolombia-logo.png",
+      instrucciones: "Transfiere a esta cuenta de ahorros Bancolombia y envía el comprobante",
+      enlaceDirecto: "https://www.bancolombia.com/personas",
+    },
+    {
+      id: "pse",
+      nombre: "PSE - Pagos Seguros en Línea",
+      tipo: "pse",
+      logo: "/pse-logo.png",
+      instrucciones: "Paga desde cualquier banco colombiano de forma segura y rápida",
+      enlaceDirecto: "https://www.pse.com.co/",
+    },
+    {
+      id: "efectivo",
+      nombre: "Efectivo",
+      tipo: "efectivo",
+      instrucciones: "Paga directamente en la barbería al momento del servicio",
+    },
+  ]
 
   const formatearPrecio = (precio: number) => {
     return new Intl.NumberFormat("es-CO", {
@@ -133,7 +111,7 @@ ${metodoSeleccionado.tipo !== "efectivo" ? `Número para transferir: ${metodoSel
 Por favor confirma la disponibilidad y procede con el pago.`
     }
 
-    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
+    window.open(`https://wa.me/${configuracion.numeroNequi}?text=${encodeURIComponent(mensaje)}`, "_blank")
 
     // Limpiar formulario
     setNombreCliente("")
@@ -189,7 +167,7 @@ Por favor confirma la disponibilidad y procede con el pago.`
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {SERVICIOS.map((servicio) => (
+        {configuracion.servicios.map((servicio) => (
           <Card
             key={servicio.id}
             className={`bg-gray-800/60 border-cyan-400/30 shadow-md shadow-cyan-400/10 hover:border-cyan-400/50 transition-all cursor-pointer group ${

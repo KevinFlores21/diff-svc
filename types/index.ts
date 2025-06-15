@@ -16,6 +16,8 @@ export interface FotoCorte {
   titulo: string
   descripcion: string
   fecha: string
+  tipo?: "destacada" | "adicional"
+  posicion?: number
 }
 
 export interface ServicioPago {
@@ -36,4 +38,11 @@ export interface MetodoPago {
   instrucciones: string
   logo?: string
   enlaceDirecto?: string
+}
+
+export interface ConfiguracionApp {
+  numeroNequi: string
+  cuentaBancolombia: string
+  servicios: ServicioPago[]
+  version: string
 }

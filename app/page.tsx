@@ -3,6 +3,7 @@
 import { Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTurnos } from "@/hooks/use-turnos"
+import { useConfiguracion } from "@/hooks/use-configuracion"
 import AgendarTurnos from "@/components/agendar-turnos"
 import Precios from "@/components/precios"
 import MetodosPago from "@/components/metodos-pago"
@@ -16,8 +17,17 @@ import MetodosPagoRapido from "@/components/metodos-pago-rapido"
 export default function Home() {
   const { turnos, diaActual, agregarTurno, eliminarTurno, obtenerHorariosDisponibles } = useTurnos()
   const {
+    configuracion,
+    actualizarNumeroNequi,
+    actualizarCuentaBancolombia,
+    actualizarServicio,
+    crearRespaldoConfiguracion,
+    restaurarConfiguracion,
+  } = useConfiguracion()
+  const {
     fotos,
     agregarFoto,
+    reemplazarFoto,
     eliminarFoto,
     convertirArchivoABase64,
     crearRespaldo,
@@ -60,7 +70,7 @@ export default function Home() {
 
             <Button asChild className="bg-green-600 hover:bg-green-700 text-white font-bold">
               <a
-                href="https://wa.me/573167530191?text=Hola%2C%20quiero%20agendar%20un%20turno"
+                href={`https://wa.me/${configuracion.numeroNequi}?text=Hola%2C%20quiero%20agendar%20un%20turno`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -75,11 +85,18 @@ export default function Home() {
             onEliminarTurno={eliminarTurno}
             fotos={fotos}
             onAgregarFoto={agregarFoto}
+            onReemplazarFoto={reemplazarFoto}
             onEliminarFoto={eliminarFoto}
             onConvertirArchivo={convertirArchivoABase64}
             onCrearRespaldo={crearRespaldo}
             onRestaurarRespaldo={restaurarRespaldo}
             onExportarHTML={exportarComoHTML}
+            configuracion={configuracion}
+            onActualizarNumeroNequi={actualizarNumeroNequi}
+            onActualizarCuentaBancolombia={actualizarCuentaBancolombia}
+            onActualizarServicio={actualizarServicio}
+            onCrearRespaldoConfiguracion={crearRespaldoConfiguracion}
+            onRestaurarConfiguracion={restaurarConfiguracion}
           />
 
           {/* Agendar Turnos */}
@@ -99,7 +116,7 @@ export default function Home() {
 
           {/* Sistema de Pagos */}
           <div data-section="pagos">
-            <MetodosPago />
+            <MetodosPago configuracion={configuracion} />
           </div>
 
           {/* Galería de Trabajos */}

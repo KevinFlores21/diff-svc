@@ -7,13 +7,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Trash2, Upload, ImageIcon, Camera, X, Download, FileUp, Save, Globe } from "lucide-react"
+import {
+  Plus,
+  Trash2,
+  Upload,
+  ImageIcon,
+  Camera,
+  X,
+  Download,
+  FileUp,
+  Save,
+  Globe,
+  RefreshCw,
+  Star,
+} from "lucide-react"
 import Image from "next/image"
 import type { FotoCorte } from "@/types"
 
 interface PanelGaleriaProps {
   fotos: FotoCorte[]
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
+  onReemplazarFoto: (fotoId: string, foto: Omit<FotoCorte, "id" | "fecha">) => void
   onEliminarFoto: (id: string) => void
   onConvertirArchivo: (archivo: File) => Promise<string>
   onCrearRespaldo: () => any
@@ -25,6 +39,7 @@ interface PanelGaleriaProps {
 export default function PanelGaleria({
   fotos,
   onAgregarFoto,
+  onReemplazarFoto,
   onEliminarFoto,
   onConvertirArchivo,
   onCrearRespaldo,
@@ -34,6 +49,8 @@ export default function PanelGaleria({
 }: PanelGaleriaProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
   const [dialogRespaldo, setDialogRespaldo] = useState(false)
+  const [modoEdicion, setModoEdicion] = useState<"agregar" | "reemplazar">("agregar")
+  const [fotoReemplazando, setFotoReemplazando] = useState<FotoCorte | null>(null)
   const [imagenSeleccionada, setImagenSeleccionada] = useState<string>("")
   const [titulo, setTitulo] = useState("")
   const [descripcion, setDescripcion] = useState("")
@@ -52,9 +69,9 @@ export default function PanelGaleria({
       return
     }
 
-    // Validar tamaño (máximo 5MB)
-    if (archivo.size > 5 * 1024 * 1024) {
-      alert("La imagen es muy grande. Por favor selecciona una imagen menor a 5MB.")
+    // Validar tamaño (máximo 10MB para mejor calidad)
+    if (archivo.size > 10 * 1024 * 1024) {
+      alert("La imagen es muy grande. Por favor selecciona una imagen menor a 10MB.")
       return
     }
 
@@ -95,6 +112,24 @@ export default function PanelGaleria({
     }
   }
 
+  const abrirAgregarFoto = () => {
+    setModoEdicion("agregar")
+    setFotoReemplazando(null)
+    setTitulo("")
+    setDescripcion("")
+    setImagenSeleccionada("")
+    setDialogAbierto(true)
+  }
+
+  const abrirReemplazarFoto = (foto: FotoCorte) => {
+    setModoEdicion("reemplazar")
+    setFotoReemplazando(foto)
+    setTitulo(foto.titulo)
+    setDescripcion(foto.descripcion)
+    setImagenSeleccionada("")
+    setDialogAbierto(true)
+  }
+
   const abrirSelectorArchivos = () => {
     inputFileRef.current?.click()
   }
@@ -110,34 +145,49 @@ export default function PanelGaleria({
     }
   }
 
-  const agregarFoto = () => {
-    if (!imagenSeleccionada || !titulo || !descripcion) {
-      alert("Por favor completa todos los campos y selecciona una imagen")
+  const procesarFoto = () => {
+    if (!titulo || !descripcion) {
+      alert("Por favor completa el título y la descripción")
       return
     }
 
-    onAgregarFoto({
-      url: imagenSeleccionada,
-      titulo,
-      descripcion,
-    })
+    if (modoEdicion === "reemplazar" && fotoReemplazando) {
+      // Para reemplazar, la imagen es opcional (puede mantener la actual)
+      const datosActualizados = {
+        url: imagenSeleccionada || fotoReemplazando.url,
+        titulo,
+        descripcion,
+      }
+      onReemplazarFoto(fotoReemplazando.id, datosActualizados)
+      alert("Foto actualizada exitosamente")
+    } else {
+      // Para agregar, la imagen es obligatoria
+      if (!imagenSeleccionada) {
+        alert("Por favor selecciona una imagen")
+        return
+      }
+      onAgregarFoto({
+        url: imagenSeleccionada,
+        titulo,
+        descripcion,
+      })
+      alert("Foto agregada exitosamente")
+    }
 
     // Limpiar formulario
     setImagenSeleccionada("")
     setTitulo("")
     setDescripcion("")
     setDialogAbierto(false)
+    setFotoReemplazando(null)
     if (inputFileRef.current) {
       inputFileRef.current.value = ""
     }
-
-    alert("Foto agregada exitosamente")
   }
 
   const eliminarFoto = (id: string, titulo: string) => {
     if (confirm(`¿Estás seguro de eliminar "${titulo}"?`)) {
       onEliminarFoto(id)
-      alert("Foto eliminada")
     }
   }
 
@@ -163,10 +213,13 @@ export default function PanelGaleria({
 
   if (!autenticado) return null
 
+  const fotosDestacadas = fotos.filter((f) => f.tipo === "destacada")
+  const fotosAdicionales = fotos.filter((f) => f.tipo === "adicional")
+
   return (
     <div className="mt-6 border-t border-cyan-400/30 pt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">Gestionar Galería</h3>
+        <h3 className="text-lg font-semibold text-white">📸 Gestionar Galería</h3>
         <div className="flex gap-2">
           <Button
             onClick={() => setDialogRespaldo(true)}
@@ -176,66 +229,137 @@ export default function PanelGaleria({
             <Save className="h-4 w-4 mr-1" />
             Guardar
           </Button>
-          <Button
-            onClick={() => setDialogAbierto(true)}
-            className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
-            size="sm"
-          >
+          <Button onClick={abrirAgregarFoto} className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold" size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Agregar
           </Button>
         </div>
       </div>
 
-      <div className="space-y-3 max-h-64 overflow-y-auto">
-        {fotos.length === 0 ? (
-          <div className="text-center py-4">
-            <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-white/70 text-sm">No hay fotos en la galería</p>
-          </div>
-        ) : (
-          fotos.map((foto) => (
-            <div key={foto.id} className="flex items-center gap-3 bg-gray-800/40 p-3 rounded border border-cyan-400/20">
-              <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
-                <Image src={foto.url || "/placeholder.svg"} alt={foto.titulo} fill className="object-cover" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">{foto.titulo}</p>
-                <p className="text-white/70 text-sm truncate">{foto.descripcion}</p>
-                <p className="text-cyan-400 text-xs">{foto.fecha}</p>
-              </div>
-              <Button
-                onClick={() => eliminarFoto(foto.id, foto.titulo)}
-                variant="destructive"
-                size="sm"
-                className="flex-shrink-0"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+      <div className="space-y-4">
+        {/* Fotos destacadas */}
+        {fotosDestacadas.length > 0 && (
+          <div>
+            <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+              <Star className="h-4 w-4 text-yellow-400" />
+              Fotos Destacadas ({fotosDestacadas.length})
+            </h4>
+            <div className="space-y-2">
+              {fotosDestacadas.map((foto) => (
+                <div
+                  key={foto.id}
+                  className="flex items-center gap-3 bg-yellow-900/20 p-3 rounded border border-yellow-400/30"
+                >
+                  <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                    <Image src={foto.url || "/placeholder.svg"} alt={foto.titulo} fill className="object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{foto.titulo}</p>
+                    <p className="text-white/70 text-sm truncate">{foto.descripcion}</p>
+                    <p className="text-yellow-400 text-xs">⭐ Destacada • {foto.fecha}</p>
+                  </div>
+                  <Button
+                    onClick={() => abrirReemplazarFoto(foto)}
+                    size="sm"
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white flex-shrink-0"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-          ))
+          </div>
         )}
+
+        {/* Fotos adicionales */}
+        <div>
+          <h4 className="text-white font-medium mb-2">📷 Fotos Adicionales ({fotosAdicionales.length})</h4>
+          {fotosAdicionales.length === 0 ? (
+            <div className="text-center py-4">
+              <ImageIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-white/70 text-sm">No hay fotos adicionales</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {fotosAdicionales.map((foto) => (
+                <div
+                  key={foto.id}
+                  className="flex items-center gap-3 bg-gray-800/40 p-3 rounded border border-cyan-400/20"
+                >
+                  <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                    <Image src={foto.url || "/placeholder.svg"} alt={foto.titulo} fill className="object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{foto.titulo}</p>
+                    <p className="text-white/70 text-sm truncate">{foto.descripcion}</p>
+                    <p className="text-cyan-400 text-xs">{foto.fecha}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={() => abrirReemplazarFoto(foto)}
+                      size="sm"
+                      variant="outline"
+                      className="border-cyan-400/30 text-white hover:bg-cyan-400/10 flex-shrink-0"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => eliminarFoto(foto.id, foto.titulo)}
+                      variant="destructive"
+                      size="sm"
+                      className="flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Inputs ocultos */}
       <input ref={inputFileRef} type="file" accept="image/*" onChange={manejarSeleccionArchivo} className="hidden" />
       <input ref={inputRespaldoRef} type="file" accept=".json" onChange={manejarRestaurarRespaldo} className="hidden" />
 
-      {/* Dialog para agregar foto */}
+      {/* Dialog para agregar/reemplazar foto */}
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
         <DialogContent className="bg-gray-900 border-cyan-400/30 max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Agregar Nueva Foto</DialogTitle>
+            <DialogTitle className="text-white">
+              {modoEdicion === "reemplazar" ? "🔄 Reemplazar Foto" : "📸 Agregar Nueva Foto"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Selector de imagen */}
             <div>
-              <label className="text-white text-sm font-medium mb-2 block">Seleccionar imagen:</label>
+              <label className="text-white text-sm font-medium mb-2 block">
+                {modoEdicion === "reemplazar" ? "Nueva imagen (opcional):" : "Seleccionar imagen:"}
+              </label>
 
               {!imagenSeleccionada ? (
                 <div className="border-2 border-dashed border-cyan-400/30 rounded-lg p-6 text-center">
-                  <Camera className="h-12 w-12 text-cyan-400 mx-auto mb-2" />
-                  <p className="text-white/70 mb-3">Selecciona una foto del corte</p>
+                  {modoEdicion === "reemplazar" && fotoReemplazando ? (
+                    <div className="relative w-full h-32 mb-3 rounded overflow-hidden">
+                      <Image
+                        src={fotoReemplazando.url || "/placeholder.svg"}
+                        alt="Imagen actual"
+                        fill
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-sm">Imagen actual</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <Camera className="h-12 w-12 text-cyan-400 mx-auto mb-2" />
+                  )}
+                  <p className="text-white/70 mb-3">
+                    {modoEdicion === "reemplazar"
+                      ? "Selecciona una nueva imagen o mantén la actual"
+                      : "Selecciona una foto del corte"}
+                  </p>
                   <Button
                     onClick={abrirSelectorArchivos}
                     disabled={cargandoImagen}
@@ -249,11 +373,11 @@ export default function PanelGaleria({
                     ) : (
                       <>
                         <Upload className="h-4 w-4 mr-2" />
-                        Seleccionar Foto
+                        {modoEdicion === "reemplazar" ? "Cambiar Imagen" : "Seleccionar Foto"}
                       </>
                     )}
                   </Button>
-                  <p className="text-white/50 text-xs mt-2">Formatos: JPG, PNG, GIF (máx. 5MB)</p>
+                  <p className="text-white/50 text-xs mt-2">Formatos: JPG, PNG, GIF (máx. 10MB)</p>
                 </div>
               ) : (
                 <div className="relative">
@@ -311,6 +435,7 @@ export default function PanelGaleria({
                   limpiarImagen()
                   setTitulo("")
                   setDescripcion("")
+                  setFotoReemplazando(null)
                 }}
                 variant="outline"
                 className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
@@ -318,12 +443,12 @@ export default function PanelGaleria({
                 Cancelar
               </Button>
               <Button
-                onClick={agregarFoto}
-                disabled={!imagenSeleccionada || !titulo || !descripcion}
+                onClick={procesarFoto}
+                disabled={!titulo || !descripcion || (modoEdicion === "agregar" && !imagenSeleccionada)}
                 className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-bold disabled:opacity-50"
               >
                 <Camera className="h-4 w-4 mr-1" />
-                Agregar Foto
+                {modoEdicion === "reemplazar" ? "Actualizar" : "Agregar Foto"}
               </Button>
             </div>
           </div>
@@ -338,8 +463,16 @@ export default function PanelGaleria({
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-white/70 text-sm">
-              Guarda tus fotos para que no se pierdan. Puedes crear un respaldo o exportar como página web.
+              Guarda tus fotos para que no se pierdan. Las fotos se guardan automáticamente en tu navegador y también
+              puedes crear respaldos.
             </p>
+
+            <div className="bg-green-900/30 border border-green-600/30 rounded p-3">
+              <p className="text-green-200 text-sm">
+                ✅ <strong>Auto-guardado activo:</strong> Tus fotos se guardan automáticamente en el navegador y no se
+                eliminarán.
+              </p>
+            </div>
 
             <div className="space-y-3">
               <Button onClick={crearRespaldo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold">
@@ -377,8 +510,8 @@ export default function PanelGaleria({
 
             <div className="bg-yellow-900/30 border border-yellow-600/30 rounded p-3">
               <p className="text-yellow-200 text-xs">
-                💡 <strong>Consejo:</strong> Crea respaldos regularmente para no perder tus fotos. El archivo HTML te
-                permite tener una página web independiente con tu galería.
+                💡 <strong>Consejo:</strong> Las fotos destacadas no se pueden eliminar, solo reemplazar. Crea respaldos
+                regularmente para mayor seguridad.
               </p>
             </div>
 

@@ -8,18 +8,26 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings, Trash2, User, Phone, Clock } from "lucide-react"
 import PanelGaleria from "./panel-galeria"
-import type { FotoCorte } from "@/types"
+import PanelConfiguracion from "./panel-configuracion"
+import type { FotoCorte, ConfiguracionApp, ServicioPago } from "@/types"
 
 interface PanelAdminProps {
   turnos: Record<string, string>
   onEliminarTurno: (hora: string) => void
   fotos: FotoCorte[]
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
+  onReemplazarFoto: (fotoId: string, foto: Omit<FotoCorte, "id" | "fecha">) => void
   onEliminarFoto: (id: string) => void
   onConvertirArchivo: (archivo: File) => Promise<string>
   onCrearRespaldo: () => any
   onRestaurarRespaldo: (archivo: File) => Promise<void>
   onExportarHTML: () => void
+  configuracion: ConfiguracionApp
+  onActualizarNumeroNequi: (numero: string) => void
+  onActualizarCuentaBancolombia: (cuenta: string) => void
+  onActualizarServicio: (servicioId: string, datos: Partial<ServicioPago>) => void
+  onCrearRespaldoConfiguracion: () => any
+  onRestaurarConfiguracion: (archivo: File) => Promise<void>
 }
 
 export default function PanelAdmin({
@@ -27,11 +35,18 @@ export default function PanelAdmin({
   onEliminarTurno,
   fotos,
   onAgregarFoto,
+  onReemplazarFoto,
   onEliminarFoto,
   onConvertirArchivo,
   onCrearRespaldo,
   onRestaurarRespaldo,
   onExportarHTML,
+  configuracion,
+  onActualizarNumeroNequi,
+  onActualizarCuentaBancolombia,
+  onActualizarServicio,
+  onCrearRespaldoConfiguracion,
+  onRestaurarConfiguracion,
 }: PanelAdminProps) {
   const [clave, setClave] = useState("")
   const [autenticado, setAutenticado] = useState(false)
@@ -69,11 +84,11 @@ export default function PanelAdmin({
 
     // Enviar mensaje al dueño
     const mensajeDueno = `⚠️ TURNO CANCELADO\nHora: ${hora}\nCliente: ${info}\nMotivo: ${motivoCancelacion}`
-    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensajeDueno)}`, "_blank")
+    window.open(`https://wa.me/${configuracion.numeroNequi}?text=${encodeURIComponent(mensajeDueno)}`, "_blank")
 
     // Enviar mensaje al cliente si tiene número
     if (numeroCliente) {
-      const mensajeCliente = `🚫 Tu turno de las ${hora} ha sido cancelado.\n\nMotivo: ${motivoCancelacion}\n\nDisculpa las molestias. Puedes reagendar cuando gustes.\n\n💈 Caracas Alcon Barber`
+      const mensajeCliente = `🚫 Tu turno de las ${hora} (${info}) fue eliminado.\n\nMotivo: ${motivoCancelacion}\n\nDisculpa las molestias. Puedes reagendar cuando gustes.\n\n💈 Caracas Alcon Barber`
       window.open(`https://wa.me/${numeroCliente}?text=${encodeURIComponent(mensajeCliente)}`, "_blank")
     }
 
@@ -117,7 +132,7 @@ export default function PanelAdmin({
             <Settings className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent className="bg-gray-900/95 text-white border-cyan-400/30 w-full sm:max-w-md">
+        <SheetContent className="bg-gray-900/95 text-white border-cyan-400/30 w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="text-white">Panel de Administración</SheetTitle>
           </SheetHeader>
@@ -195,9 +210,20 @@ export default function PanelAdmin({
                 Cerrar Sesión
               </Button>
 
+              <PanelConfiguracion
+                configuracion={configuracion}
+                onActualizarNumeroNequi={onActualizarNumeroNequi}
+                onActualizarCuentaBancolombia={onActualizarCuentaBancolombia}
+                onActualizarServicio={onActualizarServicio}
+                onCrearRespaldo={onCrearRespaldoConfiguracion}
+                onRestaurarConfiguracion={onRestaurarConfiguracion}
+                autenticado={autenticado}
+              />
+
               <PanelGaleria
                 fotos={fotos}
                 onAgregarFoto={onAgregarFoto}
+                onReemplazarFoto={onReemplazarFoto}
                 onEliminarFoto={onEliminarFoto}
                 onConvertirArchivo={onConvertirArchivo}
                 onCrearRespaldo={onCrearRespaldo}
