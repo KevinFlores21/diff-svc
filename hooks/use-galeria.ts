@@ -60,9 +60,20 @@ export function useGaleria() {
     guardarFotos(nuevasFotos)
   }
 
+  // Función para convertir archivo a base64
+  const convertirArchivoABase64 = (archivo: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(archivo)
+    })
+  }
+
   return {
     fotos,
     agregarFoto,
     eliminarFoto,
+    convertirArchivoABase64,
   }
 }

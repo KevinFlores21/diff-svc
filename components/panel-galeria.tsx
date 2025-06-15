@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Trash2, Upload, ImageIcon } from "lucide-react"
+import { Plus, Trash2, Upload, ImageIcon, Camera, X } from "lucide-react"
 import Image from "next/image"
 import type { FotoCorte } from "@/types"
 
@@ -13,32 +15,83 @@ interface PanelGaleriaProps {
   fotos: FotoCorte[]
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
   onEliminarFoto: (id: string) => void
+  onConvertirArchivo: (archivo: File) => Promise<string>
   autenticado: boolean
 }
 
-export default function PanelGaleria({ fotos, onAgregarFoto, onEliminarFoto, autenticado }: PanelGaleriaProps) {
+export default function PanelGaleria({
+  fotos,
+  onAgregarFoto,
+  onEliminarFoto,
+  onConvertirArchivo,
+  autenticado,
+}: PanelGaleriaProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
-  const [urlImagen, setUrlImagen] = useState("")
+  const [imagenSeleccionada, setImagenSeleccionada] = useState<string>("")
   const [titulo, setTitulo] = useState("")
   const [descripcion, setDescripcion] = useState("")
+  const [cargandoImagen, setCargandoImagen] = useState(false)
+  const inputFileRef = useRef<HTMLInputElement>(null)
+
+  const manejarSeleccionArchivo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = event.target.files?.[0]
+    if (!archivo) return
+
+    // Validar que sea una imagen
+    if (!archivo.type.startsWith("image/")) {
+      alert("Por favor selecciona solo archivos de imagen (JPG, PNG, GIF, etc.)")
+      return
+    }
+
+    // Validar tamaño (máximo 5MB)
+    if (archivo.size > 5 * 1024 * 1024) {
+      alert("La imagen es muy grande. Por favor selecciona una imagen menor a 5MB.")
+      return
+    }
+
+    setCargandoImagen(true)
+    try {
+      const imagenBase64 = await onConvertirArchivo(archivo)
+      setImagenSeleccionada(imagenBase64)
+    } catch (error) {
+      alert("Error al procesar la imagen. Inténtalo de nuevo.")
+      console.error("Error:", error)
+    } finally {
+      setCargandoImagen(false)
+    }
+  }
+
+  const abrirSelectorArchivos = () => {
+    inputFileRef.current?.click()
+  }
+
+  const limpiarImagen = () => {
+    setImagenSeleccionada("")
+    if (inputFileRef.current) {
+      inputFileRef.current.value = ""
+    }
+  }
 
   const agregarFoto = () => {
-    if (!urlImagen || !titulo || !descripcion) {
-      alert("Por favor completa todos los campos")
+    if (!imagenSeleccionada || !titulo || !descripcion) {
+      alert("Por favor completa todos los campos y selecciona una imagen")
       return
     }
 
     onAgregarFoto({
-      url: urlImagen,
+      url: imagenSeleccionada,
       titulo,
       descripcion,
     })
 
     // Limpiar formulario
-    setUrlImagen("")
+    setImagenSeleccionada("")
     setTitulo("")
     setDescripcion("")
     setDialogAbierto(false)
+    if (inputFileRef.current) {
+      inputFileRef.current.value = ""
+    }
 
     alert("Foto agregada exitosamente")
   }
@@ -96,26 +149,69 @@ export default function PanelGaleria({ fotos, onAgregarFoto, onEliminarFoto, aut
         )}
       </div>
 
+      {/* Input oculto para seleccionar archivos */}
+      <input ref={inputFileRef} type="file" accept="image/*" onChange={manejarSeleccionArchivo} className="hidden" />
+
       {/* Dialog para agregar foto */}
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-        <DialogContent className="bg-gray-900 border-cyan-400/30">
+        <DialogContent className="bg-gray-900 border-cyan-400/30 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white">Agregar Nueva Foto</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Selector de imagen */}
             <div>
-              <label className="text-white text-sm font-medium mb-2 block">URL de la imagen:</label>
-              <Input
-                value={urlImagen}
-                onChange={(e) => setUrlImagen(e.target.value)}
-                placeholder="https://ejemplo.com/imagen.jpg"
-                className="bg-gray-800 border-cyan-400/30 text-white"
-              />
-              <p className="text-white/50 text-xs mt-1">
-                Puedes usar servicios como Imgur, Google Drive, o cualquier URL de imagen
-              </p>
+              <label className="text-white text-sm font-medium mb-2 block">Seleccionar imagen:</label>
+
+              {!imagenSeleccionada ? (
+                <div className="border-2 border-dashed border-cyan-400/30 rounded-lg p-6 text-center">
+                  <Camera className="h-12 w-12 text-cyan-400 mx-auto mb-2" />
+                  <p className="text-white/70 mb-3">Selecciona una foto del corte</p>
+                  <Button
+                    onClick={abrirSelectorArchivos}
+                    disabled={cargandoImagen}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
+                  >
+                    {cargandoImagen ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Seleccionar Foto
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-white/50 text-xs mt-2">Formatos: JPG, PNG, GIF (máx. 5MB)</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="relative w-full h-48 rounded border border-cyan-400/30 overflow-hidden">
+                    <Image
+                      src={imagenSeleccionada || "/placeholder.svg"}
+                      alt="Vista previa"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <Button onClick={limpiarImagen} variant="destructive" size="sm" className="absolute top-2 right-2">
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={abrirSelectorArchivos}
+                    variant="outline"
+                    size="sm"
+                    className="absolute bottom-2 right-2 bg-black/50 border-cyan-400/30 text-white hover:bg-cyan-400/10"
+                  >
+                    Cambiar
+                  </Button>
+                </div>
+              )}
             </div>
 
+            {/* Título del corte */}
             <div>
               <label className="text-white text-sm font-medium mb-2 block">Título del corte:</label>
               <Input
@@ -126,6 +222,7 @@ export default function PanelGaleria({ fotos, onAgregarFoto, onEliminarFoto, aut
               />
             </div>
 
+            {/* Descripción */}
             <div>
               <label className="text-white text-sm font-medium mb-2 block">Descripción:</label>
               <Textarea
@@ -137,31 +234,26 @@ export default function PanelGaleria({ fotos, onAgregarFoto, onEliminarFoto, aut
               />
             </div>
 
-            {urlImagen && (
-              <div>
-                <label className="text-white text-sm font-medium mb-2 block">Vista previa:</label>
-                <div className="relative w-full h-32 rounded border border-cyan-400/30 overflow-hidden">
-                  <Image
-                    src={urlImagen || "/placeholder.svg"}
-                    alt="Vista previa"
-                    fill
-                    className="object-cover"
-                    onError={() => alert("Error al cargar la imagen. Verifica la URL.")}
-                  />
-                </div>
-              </div>
-            )}
-
+            {/* Botones */}
             <div className="flex gap-2">
               <Button
-                onClick={() => setDialogAbierto(false)}
+                onClick={() => {
+                  setDialogAbierto(false)
+                  limpiarImagen()
+                  setTitulo("")
+                  setDescripcion("")
+                }}
                 variant="outline"
                 className="flex-1 border-cyan-400/30 text-white hover:bg-cyan-400/10"
               >
                 Cancelar
               </Button>
-              <Button onClick={agregarFoto} className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-bold">
-                <Upload className="h-4 w-4 mr-1" />
+              <Button
+                onClick={agregarFoto}
+                disabled={!imagenSeleccionada || !titulo || !descripcion}
+                className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-bold disabled:opacity-50"
+              >
+                <Camera className="h-4 w-4 mr-1" />
                 Agregar Foto
               </Button>
             </div>
