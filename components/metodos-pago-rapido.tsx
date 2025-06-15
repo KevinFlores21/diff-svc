@@ -6,16 +6,45 @@ import Image from "next/image"
 
 export default function MetodosPagoRapido() {
   const abrirNequi = () => {
-    // Intenta abrir la app de Nequi
-    window.open("nequi://", "_self")
-    // Fallback a la web
-    setTimeout(() => {
-      window.open("https://nequi.com.co/", "_blank")
-    }, 1000)
+    // Mostrar información rápida
+    const numeroNequi = "3167530191" // Puedes hacer esto dinámico después
+
+    if (
+      confirm(
+        `💜 ¿Quieres abrir Nequi para enviar un pago?\n\nNúmero: ${numeroNequi}\n\n✅ Presiona OK para abrir Nequi\n❌ Presiona Cancelar para ir a la sección de pagos`,
+      )
+    ) {
+      // Intenta abrir la app de Nequi
+      window.open(`nequi://send?phone=${numeroNequi}`, "_self")
+      // Fallback a la web
+      setTimeout(() => {
+        window.open("https://nequi.com.co/", "_blank")
+      }, 1000)
+    } else {
+      // Scroll hacia la sección de pagos
+      const seccionPagos = document.querySelector('[data-section="pagos"]')
+      if (seccionPagos) {
+        seccionPagos.scrollIntoView({ behavior: "smooth" })
+      }
+    }
   }
 
   const abrirBancolombia = () => {
-    window.open("https://www.bancolombia.com/personas", "_blank")
+    const cuentaBancolombia = "12345678901" // Puedes hacer esto dinámico después
+
+    if (
+      confirm(
+        `🏦 ¿Quieres abrir Bancolombia para hacer una transferencia?\n\nCuenta: ${cuentaBancolombia}\n\n✅ Presiona OK para abrir Bancolombia\n❌ Presiona Cancelar para ir a la sección de pagos`,
+      )
+    ) {
+      window.open("https://www.bancolombia.com/personas", "_blank")
+    } else {
+      // Scroll hacia la sección de pagos
+      const seccionPagos = document.querySelector('[data-section="pagos"]')
+      if (seccionPagos) {
+        seccionPagos.scrollIntoView({ behavior: "smooth" })
+      }
+    }
   }
 
   const abrirPSE = () => {

@@ -87,30 +87,58 @@ export default function MetodosPago({ configuracion }: MetodosPagoProps) {
 
     let mensaje = ""
 
-    if (metodoSeleccionado.tipo === "pse") {
-      mensaje = `💳 SOLICITUD DE PAGO PSE
+    if (metodoSeleccionado.tipo === "nequi") {
+      mensaje = `💜 PAGO CON NEQUI
 
-Servicio: ${servicioSeleccionado.nombre}
-Precio: ${formatearPrecio(servicioSeleccionado.precio)}
-Cliente: ${nombreCliente}
-WhatsApp: ${numeroCliente}
-Método: PSE (Pagos Seguros en Línea)
+🛒 Servicio: ${servicioSeleccionado.nombre}
+💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+👤 Cliente: ${nombreCliente}
+📱 WhatsApp: ${numeroCliente}
 
-Quiero pagar a través de PSE. Por favor envíame el enlace de pago seguro.`
-    } else {
-      mensaje = `🛒 SOLICITUD DE PAGO
+📲 DATOS PARA NEQUI:
+Número: ${metodoSeleccionado.numero}
+Monto: $${servicioSeleccionado.precio.toLocaleString()}
 
-Servicio: ${servicioSeleccionado.nombre}
-Precio: ${formatearPrecio(servicioSeleccionado.precio)}
-Cliente: ${nombreCliente}
-WhatsApp: ${numeroCliente}
-Método de pago: ${metodoSeleccionado.nombre}
+✅ Voy a enviar el pago por Nequi ahora mismo.
+Por favor confirma cuando recibas la transferencia.`
+    } else if (metodoSeleccionado.tipo === "bancolombia") {
+      mensaje = `🏦 TRANSFERENCIA BANCOLOMBIA
 
-${metodoSeleccionado.tipo !== "efectivo" ? `Número para transferir: ${metodoSeleccionado.numero}` : ""}
+🛒 Servicio: ${servicioSeleccionado.nombre}
+💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+👤 Cliente: ${nombreCliente}
+📱 WhatsApp: ${numeroCliente}
 
-Por favor confirma la disponibilidad y procede con el pago.`
+🏧 DATOS PARA TRANSFERENCIA:
+Cuenta Ahorros: ${metodoSeleccionado.numero}
+Banco: Bancolombia
+Monto: $${servicioSeleccionado.precio.toLocaleString()}
+
+✅ Voy a hacer la transferencia ahora.
+Te envío el comprobante cuando esté listo.`
+    } else if (metodoSeleccionado.tipo === "pse") {
+      mensaje = `💳 PAGO CON PSE
+
+🛒 Servicio: ${servicioSeleccionado.nombre}
+💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+👤 Cliente: ${nombreCliente}
+📱 WhatsApp: ${numeroCliente}
+
+🌐 Quiero pagar con PSE (Pagos Seguros en Línea)
+Por favor envíame el enlace de pago seguro para completar la transacción desde mi banco.`
+    } else if (metodoSeleccionado.tipo === "efectivo") {
+      mensaje = `💵 PAGO EN EFECTIVO
+
+🛒 Servicio: ${servicioSeleccionado.nombre}
+💰 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+👤 Cliente: ${nombreCliente}
+📱 WhatsApp: ${numeroCliente}
+
+💰 Voy a pagar en efectivo en la barbería.
+Por favor confirma mi cita y la disponibilidad.`
     }
 
+    // Abrir WhatsApp con el mensaje
     window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
 
     // Limpiar formulario
@@ -119,7 +147,16 @@ Por favor confirma la disponibilidad y procede con el pago.`
     setMetodoSeleccionado(null)
     setDialogAbierto(false)
 
-    alert("Solicitud enviada. Te contactaremos para confirmar el pago y la cita.")
+    // Mensaje de confirmación específico
+    if (metodoSeleccionado.tipo === "nequi") {
+      alert("¡Perfecto! Ahora puedes abrir Nequi y enviar el pago. Ya enviamos tu solicitud por WhatsApp.")
+    } else if (metodoSeleccionado.tipo === "bancolombia") {
+      alert("¡Listo! Ahora puedes hacer la transferencia por Bancolombia. Ya enviamos los datos por WhatsApp.")
+    } else if (metodoSeleccionado.tipo === "pse") {
+      alert("¡Excelente! Te enviaremos el enlace de PSE por WhatsApp para que pagues desde tu banco.")
+    } else {
+      alert("¡Perfecto! Tu solicitud fue enviada. Te contactaremos para confirmar.")
+    }
   }
 
   const abrirEnlaceDirecto = () => {
@@ -362,7 +399,15 @@ Por favor confirma la disponibilidad y procede con el pago.`
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
                 >
                   <CreditCard className="h-4 w-4 mr-1" />
-                  {metodoSeleccionado?.tipo === "pse" ? "Solicitar PSE" : "Solicitar Pago"}
+                  {metodoSeleccionado?.tipo === "pse"
+                    ? "Solicitar Enlace PSE"
+                    : metodoSeleccionado?.tipo === "nequi"
+                      ? "Pagar con Nequi"
+                      : metodoSeleccionado?.tipo === "bancolombia"
+                        ? "Transferir Bancolombia"
+                        : metodoSeleccionado?.tipo === "efectivo"
+                          ? "Confirmar Pago en Efectivo"
+                          : "Solicitar Pago"}
                 </Button>
               </div>
             </div>
