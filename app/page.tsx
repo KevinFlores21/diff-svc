@@ -21,8 +21,8 @@ export default function Home() {
     actualizarNumeroNequi,
     actualizarCuentaBancolombia,
     actualizarServicio,
-    crearRespaldoConfiguracion,
-    restaurarConfiguracion,
+    agregarServicio,
+    eliminarServicio,
   } = useConfiguracion()
   const {
     fotos,
@@ -70,7 +70,7 @@ export default function Home() {
 
             <Button asChild className="bg-green-600 hover:bg-green-700 text-white font-bold">
               <a
-                href={`https://wa.me/${configuracion.numeroNequi}?text=Hola%2C%20quiero%20agendar%20un%20turno`}
+                href="https://wa.me/573167530191?text=Hola%2C%20quiero%20agendar%20un%20turno"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -95,8 +95,8 @@ export default function Home() {
             onActualizarNumeroNequi={actualizarNumeroNequi}
             onActualizarCuentaBancolombia={actualizarCuentaBancolombia}
             onActualizarServicio={actualizarServicio}
-            onCrearRespaldoConfiguracion={crearRespaldoConfiguracion}
-            onRestaurarConfiguracion={restaurarConfiguracion}
+            onAgregarServicio={agregarServicio}
+            onEliminarServicio={eliminarServicio}
           />
 
           {/* Agendar Turnos */}

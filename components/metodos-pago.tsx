@@ -111,7 +111,7 @@ ${metodoSeleccionado.tipo !== "efectivo" ? `Número para transferir: ${metodoSel
 Por favor confirma la disponibilidad y procede con el pago.`
     }
 
-    window.open(`https://wa.me/${configuracion.numeroNequi}?text=${encodeURIComponent(mensaje)}`, "_blank")
+    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
 
     // Limpiar formulario
     setNombreCliente("")

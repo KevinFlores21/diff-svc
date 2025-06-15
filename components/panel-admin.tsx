@@ -16,7 +16,7 @@ interface PanelAdminProps {
   onEliminarTurno: (hora: string) => void
   fotos: FotoCorte[]
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
-  onReemplazarFoto: (fotoId: string, foto: Omit<FotoCorte, "id" | "fecha">) => void
+  onReemplazarFoto: (fotoId: string, nuevaUrl: string, nuevoTitulo?: string, nuevaDescripcion?: string) => void
   onEliminarFoto: (id: string) => void
   onConvertirArchivo: (archivo: File) => Promise<string>
   onCrearRespaldo: () => any
@@ -26,8 +26,8 @@ interface PanelAdminProps {
   onActualizarNumeroNequi: (numero: string) => void
   onActualizarCuentaBancolombia: (cuenta: string) => void
   onActualizarServicio: (servicioId: string, datos: Partial<ServicioPago>) => void
-  onCrearRespaldoConfiguracion: () => any
-  onRestaurarConfiguracion: (archivo: File) => Promise<void>
+  onAgregarServicio: (servicio: Omit<ServicioPago, "id">) => void
+  onEliminarServicio: (servicioId: string) => void
 }
 
 export default function PanelAdmin({
@@ -45,8 +45,8 @@ export default function PanelAdmin({
   onActualizarNumeroNequi,
   onActualizarCuentaBancolombia,
   onActualizarServicio,
-  onCrearRespaldoConfiguracion,
-  onRestaurarConfiguracion,
+  onAgregarServicio,
+  onEliminarServicio,
 }: PanelAdminProps) {
   const [clave, setClave] = useState("")
   const [autenticado, setAutenticado] = useState(false)
@@ -84,11 +84,11 @@ export default function PanelAdmin({
 
     // Enviar mensaje al dueño
     const mensajeDueno = `⚠️ TURNO CANCELADO\nHora: ${hora}\nCliente: ${info}\nMotivo: ${motivoCancelacion}`
-    window.open(`https://wa.me/${configuracion.numeroNequi}?text=${encodeURIComponent(mensajeDueno)}`, "_blank")
+    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensajeDueno)}`, "_blank")
 
     // Enviar mensaje al cliente si tiene número
     if (numeroCliente) {
-      const mensajeCliente = `🚫 Tu turno de las ${hora} (${info}) fue eliminado.\n\nMotivo: ${motivoCancelacion}\n\nDisculpa las molestias. Puedes reagendar cuando gustes.\n\n💈 Caracas Alcon Barber`
+      const mensajeCliente = `🚫 Tu turno de las ${hora} ha sido cancelado.\n\nMotivo: ${motivoCancelacion}\n\nDisculpa las molestias. Puedes reagendar cuando gustes.\n\n💈 Caracas Alcon Barber`
       window.open(`https://wa.me/${numeroCliente}?text=${encodeURIComponent(mensajeCliente)}`, "_blank")
     }
 
@@ -215,8 +215,8 @@ export default function PanelAdmin({
                 onActualizarNumeroNequi={onActualizarNumeroNequi}
                 onActualizarCuentaBancolombia={onActualizarCuentaBancolombia}
                 onActualizarServicio={onActualizarServicio}
-                onCrearRespaldo={onCrearRespaldoConfiguracion}
-                onRestaurarConfiguracion={onRestaurarConfiguracion}
+                onAgregarServicio={onAgregarServicio}
+                onEliminarServicio={onEliminarServicio}
                 autenticado={autenticado}
               />
 

@@ -18,7 +18,7 @@ export function useGaleria() {
         const fotosParsed = JSON.parse(fotosGuardadas)
         setFotos(fotosParsed)
       } else {
-        // Fotos iniciales de ejemplo
+        // Si no hay fotos guardadas, crear las fotos de ejemplo
         const fotosEjemplo: FotoCorte[] = [
           {
             id: "destacada-1",
@@ -49,91 +49,73 @@ export function useGaleria() {
           },
         ]
         setFotos(fotosEjemplo)
-        guardarFotosPermanentes(fotosEjemplo)
+        guardarFotosEnStorage(fotosEjemplo)
       }
     } catch (error) {
       console.error("Error al cargar fotos:", error)
     }
   }
 
-  const guardarFotosPermanentes = (nuevasFotos: FotoCorte[]) => {
+  const guardarFotosEnStorage = (nuevasFotos: FotoCorte[]) => {
     try {
-      setFotos(nuevasFotos)
       localStorage.setItem("galeria-fotos-permanentes", JSON.stringify(nuevasFotos))
-
-      // También guardar en IndexedDB para mayor persistencia
-      if (typeof window !== "undefined" && "indexedDB" in window) {
-        guardarEnIndexedDB(nuevasFotos)
+      // También crear un respaldo automático
+      const respaldoAutomatico = {
+        fecha: new Date().toISOString(),
+        fotos: nuevasFotos,
+        version: "auto-backup",
       }
+      localStorage.setItem("galeria-respaldo-automatico", JSON.stringify(respaldoAutomatico))
     } catch (error) {
       console.error("Error al guardar fotos:", error)
     }
   }
 
-  const guardarEnIndexedDB = async (fotos: FotoCorte[]) => {
-    try {
-      const request = indexedDB.open("CaracasAlconBarberDB", 1)
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        if (!db.objectStoreNames.contains("fotos")) {
-          db.createObjectStore("fotos", { keyPath: "id" })
-        }
-      }
-
-      request.onsuccess = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result
-        const transaction = db.transaction(["fotos"], "readwrite")
-        const store = transaction.objectStore("fotos")
-
-        // Limpiar y guardar todas las fotos
-        store.clear()
-        fotos.forEach((foto) => store.add(foto))
-      }
-    } catch (error) {
-      console.error("Error al guardar en IndexedDB:", error)
-    }
+  const guardarFotos = (nuevasFotos: FotoCorte[]) => {
+    setFotos(nuevasFotos)
+    guardarFotosEnStorage(nuevasFotos)
   }
 
   const agregarFoto = (foto: Omit<FotoCorte, "id" | "fecha">) => {
     const nuevaFoto: FotoCorte = {
       ...foto,
-      id: `foto-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `foto-${Date.now()}`,
       fecha: new Date().toLocaleDateString(),
-      tipo: "adicional",
+      tipo: foto.tipo || "adicional",
     }
-    const nuevasFotos = [...fotos, nuevaFoto]
-    guardarFotosPermanentes(nuevasFotos)
+    const nuevasFotos = [nuevaFoto, ...fotos]
+    guardarFotos(nuevasFotos)
   }
 
-  const reemplazarFoto = (fotoId: string, nuevaFoto: Omit<FotoCorte, "id" | "fecha">) => {
-    const fotoExistente = fotos.find((f) => f.id === fotoId)
-    if (!fotoExistente) return
-
-    const fotoActualizada: FotoCorte = {
-      ...nuevaFoto,
-      id: fotoId,
-      fecha: new Date().toLocaleDateString(),
-      tipo: fotoExistente.tipo,
-      posicion: fotoExistente.posicion,
-    }
-
-    const nuevasFotos = fotos.map((foto) => (foto.id === fotoId ? fotoActualizada : foto))
-    guardarFotosPermanentes(nuevasFotos)
+  const reemplazarFoto = (fotoId: string, nuevaUrl: string, nuevoTitulo?: string, nuevaDescripcion?: string) => {
+    const nuevasFotos = fotos.map((foto) =>
+      foto.id === fotoId
+        ? {
+            ...foto,
+            url: nuevaUrl,
+            titulo: nuevoTitulo || foto.titulo,
+            descripcion: nuevaDescripcion || foto.descripcion,
+            fecha: new Date().toLocaleDateString(),
+          }
+        : foto,
+    )
+    guardarFotos(nuevasFotos)
   }
 
   const eliminarFoto = (id: string) => {
-    // No permitir eliminar fotos destacadas, solo reemplazar
-    const foto = fotos.find((f) => f.id === id)
-    if (foto?.tipo === "destacada") {
-      alert("No puedes eliminar fotos destacadas. Puedes reemplazarlas desde el panel de administración.")
-      return
-    }
-
     const nuevasFotos = fotos.filter((foto) => foto.id !== id)
-    guardarFotosPermanentes(nuevasFotos)
+    guardarFotos(nuevasFotos)
   }
 
+  const obtenerFotosDestacadas = () => {
+    return fotos.filter((foto) => foto.tipo === "destacada").sort((a, b) => (a.posicion || 0) - (b.posicion || 0))
+  }
+
+  const obtenerFotosAdicionales = () => {
+    return fotos.filter((foto) => foto.tipo !== "destacada")
+  }
+
+  // Función para convertir archivo a base64
   const convertirArchivoABase64 = (archivo: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -143,12 +125,13 @@ export function useGaleria() {
     })
   }
 
+  // Función para crear respaldo de todas las fotos
   const crearRespaldo = () => {
     const respaldo = {
       fecha: new Date().toISOString(),
       fotos: fotos,
-      version: "2.0",
-      tipo: "galeria-completa",
+      version: "1.0",
+      tipo: "manual",
     }
 
     const dataStr = JSON.stringify(respaldo, null, 2)
@@ -157,7 +140,7 @@ export function useGaleria() {
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement("a")
     link.href = url
-    link.download = `galeria-respaldo-completo-${new Date().toISOString().split("T")[0]}.json`
+    link.download = `galeria-respaldo-${new Date().toISOString().split("T")[0]}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -166,6 +149,7 @@ export function useGaleria() {
     return respaldo
   }
 
+  // Función para restaurar desde respaldo
   const restaurarRespaldo = (archivo: File): Promise<void> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -173,7 +157,7 @@ export function useGaleria() {
         try {
           const respaldo = JSON.parse(e.target?.result as string)
           if (respaldo.fotos && Array.isArray(respaldo.fotos)) {
-            guardarFotosPermanentes(respaldo.fotos)
+            guardarFotos(respaldo.fotos)
             resolve()
           } else {
             reject(new Error("Formato de respaldo inválido"))
@@ -187,6 +171,7 @@ export function useGaleria() {
     })
   }
 
+  // Función para exportar fotos como HTML estático
   const exportarComoHTML = () => {
     const html = `
 <!DOCTYPE html>
@@ -207,32 +192,64 @@ export function useGaleria() {
         .photo-desc { font-size: 14px; color: #ccc; margin-bottom: 8px; }
         .photo-date { font-size: 12px; color: #888; }
         .footer { text-align: center; margin-top: 40px; padding: 20px; border-top: 1px solid #333; }
-        .destacada { border: 2px solid #ffd700; }
+        .destacadas { margin-bottom: 40px; }
+        .section-title { color: #00ffff; font-size: 24px; margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>💈 Galería Caracas Alcon Barber</h1>
-        <div class="gallery">
-            ${fotos
-              .map(
-                (foto) => `
-                <div class="photo ${foto.tipo === "destacada" ? "destacada" : ""}">
-                    <img src="${foto.url}" alt="${foto.titulo}">
-                    <div class="photo-info">
-                        <div class="photo-title">${foto.titulo} ${foto.tipo === "destacada" ? "⭐" : ""}</div>
-                        <div class="photo-desc">${foto.descripcion}</div>
-                        <div class="photo-date">📅 ${foto.fecha}</div>
+        
+        <div class="destacadas">
+            <h2 class="section-title">✨ Cortes Destacados</h2>
+            <div class="gallery">
+                ${obtenerFotosDestacadas()
+                  .map(
+                    (foto) => `
+                    <div class="photo">
+                        <img src="${foto.url}" alt="${foto.titulo}">
+                        <div class="photo-info">
+                            <div class="photo-title">${foto.titulo}</div>
+                            <div class="photo-desc">${foto.descripcion}</div>
+                            <div class="photo-date">📅 ${foto.fecha}</div>
+                        </div>
                     </div>
-                </div>
-            `,
-              )
-              .join("")}
+                `,
+                  )
+                  .join("")}
+            </div>
         </div>
+
+        ${
+          obtenerFotosAdicionales().length > 0
+            ? `
+        <div>
+            <h2 class="section-title">📷 Más Trabajos</h2>
+            <div class="gallery">
+                ${obtenerFotosAdicionales()
+                  .map(
+                    (foto) => `
+                    <div class="photo">
+                        <img src="${foto.url}" alt="${foto.titulo}">
+                        <div class="photo-info">
+                            <div class="photo-title">${foto.titulo}</div>
+                            <div class="photo-desc">${foto.descripcion}</div>
+                            <div class="photo-date">📅 ${foto.fecha}</div>
+                        </div>
+                    </div>
+                `,
+                  )
+                  .join("")}
+            </div>
+        </div>
+        `
+            : ""
+        }
+        
         <div class="footer">
             <p>Galería generada el ${new Date().toLocaleDateString()}</p>
             <p>💈 Caracas Alcon Barber - Calidad, Estilo y Flow</p>
-            <p>Total de fotos: ${fotos.length} | Fotos destacadas: ${fotos.filter((f) => f.tipo === "destacada").length}</p>
+            <p>Total de fotos: ${fotos.length}</p>
         </div>
     </div>
 </body>
@@ -254,6 +271,8 @@ export function useGaleria() {
     agregarFoto,
     reemplazarFoto,
     eliminarFoto,
+    obtenerFotosDestacadas,
+    obtenerFotosAdicionales,
     convertirArchivoABase64,
     crearRespaldo,
     restaurarRespaldo,

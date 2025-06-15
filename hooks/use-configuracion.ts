@@ -73,47 +73,22 @@ export function useConfiguracion() {
     guardarConfiguracion(nuevaConfig)
   }
 
-  const crearRespaldoConfiguracion = () => {
-    const respaldo = {
-      fecha: new Date().toISOString(),
-      configuracion: configuracion,
-      version: "1.0",
+  const agregarServicio = (nuevoServicio: Omit<ServicioPago, "id">) => {
+    const servicio: ServicioPago = {
+      ...nuevoServicio,
+      id: Date.now().toString(),
     }
-
-    const dataStr = JSON.stringify(respaldo, null, 2)
-    const dataBlob = new Blob([dataStr], { type: "application/json" })
-
-    const url = URL.createObjectURL(dataBlob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `configuracion-respaldo-${new Date().toISOString().split("T")[0]}.json`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    return respaldo
+    const nuevaConfig = {
+      ...configuracion,
+      servicios: [...configuracion.servicios, servicio],
+    }
+    guardarConfiguracion(nuevaConfig)
   }
 
-  const restaurarConfiguracion = (archivo: File): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const respaldo = JSON.parse(e.target?.result as string)
-          if (respaldo.configuracion) {
-            guardarConfiguracion(respaldo.configuracion)
-            resolve()
-          } else {
-            reject(new Error("Formato de respaldo inválido"))
-          }
-        } catch (error) {
-          reject(error)
-        }
-      }
-      reader.onerror = reject
-      reader.readAsText(archivo)
-    })
+  const eliminarServicio = (servicioId: string) => {
+    const serviciosFiltrados = configuracion.servicios.filter((s) => s.id !== servicioId)
+    const nuevaConfig = { ...configuracion, servicios: serviciosFiltrados }
+    guardarConfiguracion(nuevaConfig)
   }
 
   return {
@@ -121,7 +96,7 @@ export function useConfiguracion() {
     actualizarNumeroNequi,
     actualizarCuentaBancolombia,
     actualizarServicio,
-    crearRespaldoConfiguracion,
-    restaurarConfiguracion,
+    agregarServicio,
+    eliminarServicio,
   }
 }
