@@ -4,12 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Settings, Trash2 } from "lucide-react"
-import type { Turno } from "@/types"
+import { Settings } from "lucide-react"
 
 interface PanelAdminProps {
-  turnos: Turno[]
-  onEliminarTurno: (index: number) => void
+  turnos: Record<string, string>
+  onEliminarTurno: (hora: string) => void
 }
 
 export default function PanelAdmin({ turnos, onEliminarTurno }: PanelAdminProps) {
@@ -19,20 +18,32 @@ export default function PanelAdmin({ turnos, onEliminarTurno }: PanelAdminProps)
   const verificarClave = () => {
     if (clave === "caracas123") {
       setAutenticado(true)
+      revisarTurnos()
     } else {
-      alert("Contraseña incorrecta")
+      alert("Contraseña incorrecta.")
     }
   }
 
-  const eliminarTurno = (index: number) => {
-    const turno = turnos[index]
-    onEliminarTurno(index)
+  const revisarTurnos = () => {
+    if (Object.keys(turnos).length === 0) {
+      alert("No hay turnos agendados.")
+      return
+    }
 
-    // Enviar mensaje de cancelación
-    const mensaje = "Tu turno fue cancelado. Lo sentimos."
-    window.open(`https://wa.me/${turno.numero}?text=${encodeURIComponent(mensaje)}`, "_blank")
+    for (const [hora, nombre] of Object.entries(turnos)) {
+      const confirmar = confirm(`🕒 ${hora} – ${nombre}\n¿Eliminar este turno?`)
+      if (confirmar) {
+        onEliminarTurno(hora)
 
-    alert("Turno eliminado")
+        // Enviar mensaje de cancelación
+        const mensaje = `⚠️ El dueño eliminó el turno de las ${hora} (${nombre}).`
+        window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
+      }
+    }
+
+    alert("Revisado y actualizado.")
+    setAutenticado(false)
+    setClave("")
   }
 
   return (
@@ -41,52 +52,28 @@ export default function PanelAdmin({ turnos, onEliminarTurno }: PanelAdminProps)
         <Button
           variant="outline"
           size="icon"
-          className="fixed top-4 right-4 bg-black/50 border-white/20 text-white hover:bg-white/20"
+          className="fixed top-4 right-4 bg-cyan-500 border-cyan-400 text-black hover:bg-cyan-600 rounded-full p-3"
         >
-          <Settings className="h-4 w-4" />
+          <Settings className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="bg-black/90 text-white border-white/20">
+      <SheetContent className="bg-gray-900/95 text-white border-cyan-400/30">
         <SheetHeader>
-          <SheetTitle className="text-white">Panel Privado (Caracas)</SheetTitle>
+          <SheetTitle className="text-white">Panel de Administración</SheetTitle>
         </SheetHeader>
 
-        {!autenticado ? (
-          <div className="space-y-4 mt-6">
-            <Input
-              type="password"
-              placeholder="Contraseña"
-              value={clave}
-              onChange={(e) => setClave(e.target.value)}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-            />
-            <Button onClick={verificarClave} className="w-full">
-              Ver Turnos
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">Turnos Agendados</h3>
-            {turnos.length === 0 ? (
-              <p className="text-white/70">No hay turnos agendados</p>
-            ) : (
-              <div className="space-y-2">
-                {turnos.map((turno, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white/10 p-3 rounded">
-                    <div>
-                      <div className="font-semibold">{turno.hora}</div>
-                      <div className="text-sm text-white/70">{turno.nombre}</div>
-                      <div className="text-xs text-white/50">{turno.numero}</div>
-                    </div>
-                    <Button variant="destructive" size="sm" onClick={() => eliminarTurno(index)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <div className="space-y-4 mt-6">
+          <Input
+            type="password"
+            placeholder="Contraseña del panel:"
+            value={clave}
+            onChange={(e) => setClave(e.target.value)}
+            className="bg-gray-800 border-cyan-400/30 text-white placeholder:text-gray-400"
+          />
+          <Button onClick={verificarClave} className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold">
+            Acceder
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   )

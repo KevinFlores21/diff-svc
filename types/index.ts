@@ -5,5 +5,7 @@ export interface Turno {
 }
 
 export interface EncuestaData {
-  satisfaccion: "excelente" | "buena" | "mala"
+  satisfaccion: "Excelente" | "Bueno" | "Regular" | "Malo"
 }
+
+export type DiasSemana = "domingo" | "lunes" | "martes" | "miércoles" | "jueves" | "viernes" | "sábado"

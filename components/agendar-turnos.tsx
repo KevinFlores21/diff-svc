@@ -5,29 +5,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { Turno } from "@/types"
+import type { DiasSemana } from "@/types"
 
 interface AgendarTurnosProps {
-  turnos: Turno[]
-  onAgregarTurno: (turno: Turno) => void
+  turnos: Record<string, string>
+  diaActual: DiasSemana
+  horariosDisponibles: string[]
+  onAgregarTurno: (hora: string, nombre: string, numero: string) => void
+  onEliminarTurno: (hora: string) => void
 }
 
-const HORAS_DISPONIBLES = [
-  "8:00 AM",
-  "9:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "1:00 PM",
-  "2:00 PM",
-  "3:00 PM",
-  "4:00 PM",
-  "5:00 PM",
-  "6:00 PM",
-  "7:00 PM",
-  "8:00 PM",
-]
-
-export default function AgendarTurnos({ turnos, onAgregarTurno }: AgendarTurnosProps) {
+export default function AgendarTurnos({
+  turnos,
+  diaActual,
+  horariosDisponibles,
+  onAgregarTurno,
+  onEliminarTurno,
+}: AgendarTurnosProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
   const [horaSeleccionada, setHoraSeleccionada] = useState("")
   const [nombre, setNombre] = useState("")
@@ -44,16 +38,10 @@ export default function AgendarTurnos({ turnos, onAgregarTurno }: AgendarTurnosP
       return
     }
 
-    const nuevoTurno: Turno = {
-      hora: horaSeleccionada,
-      nombre,
-      numero,
-    }
-
-    onAgregarTurno(nuevoTurno)
+    onAgregarTurno(horaSeleccionada, nombre, numero)
 
     // Enviar mensaje a WhatsApp
-    const mensaje = `Nuevo turno ${horaSeleccionada} de ${nombre} (${numero})`
+    const mensaje = `🔔 NUEVO TURNO\nHora: ${horaSeleccionada}\nNombre: ${nombre}\nWhatsApp: ${numero}`
     window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
 
     // Limpiar formulario
@@ -61,67 +49,93 @@ export default function AgendarTurnos({ turnos, onAgregarTurno }: AgendarTurnosP
     setNumero("")
     setDialogAbierto(false)
 
-    alert("Turno agendado correctamente")
+    alert("Turno agendado.")
   }
 
-  const estaOcupado = (hora: string) => {
-    return turnos.some((turno) => turno.hora === hora)
+  const eliminarTurno = (hora: string) => {
+    if (!confirm("¿Seguro que quieres eliminar este turno?")) return
+
+    const nombreCompleto = turnos[hora]
+    onEliminarTurno(hora)
+
+    // Enviar mensaje de cancelación
+    const mensaje = `⚠️ El turno de las ${hora} (${nombreCompleto}) fue eliminado. No se podrá atender.`
+    window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
   }
 
-  const obtenerTurno = (hora: string) => {
-    return turnos.find((turno) => turno.hora === hora)
+  if (diaActual === "miércoles") {
+    return (
+      <section className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 mb-8 border border-cyan-400/30 shadow-lg shadow-cyan-400/20">
+        <h2 className="text-2xl font-bold mb-6 text-center">Turnos</h2>
+        <p className="text-center text-cyan-400 text-lg">Hoy no se atiende.</p>
+      </section>
+    )
   }
 
   return (
-    <section className="bg-black/50 backdrop-blur-sm rounded-lg p-6 mb-8">
-      <h2 className="text-2xl font-bold mb-6 text-center">Agendar tu turno</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {HORAS_DISPONIBLES.map((hora) => {
-          const ocupado = estaOcupado(hora)
-          const turno = obtenerTurno(hora)
+    <section className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-6 mb-8 border border-cyan-400/30 shadow-lg shadow-cyan-400/20">
+      <h2 className="text-2xl font-bold mb-6 text-center">Turnos Disponibles</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {horariosDisponibles.map((hora) => {
+          const ocupado = turnos[hora]
 
           return (
-            <Button
+            <div
               key={hora}
-              variant={ocupado ? "secondary" : "default"}
-              disabled={ocupado}
-              onClick={() => agendarTurno(hora)}
-              className="h-auto p-3 text-sm"
+              className="bg-gray-800/60 p-4 rounded-lg border border-cyan-400/30 shadow-md shadow-cyan-400/10"
             >
               <div className="text-center">
-                <div className="font-semibold">{hora}</div>
-                <div className="text-xs">{ocupado ? `Ocupado por ${turno?.nombre}` : "Disponible"}</div>
+                <div className="font-bold text-lg text-cyan-400">{hora}</div>
+                <div className="text-sm mb-3">{ocupado ? `Ocupado por ${ocupado}` : "Disponible"}</div>
+                {ocupado ? (
+                  <Button variant="destructive" size="sm" onClick={() => eliminarTurno(hora)} className="w-full">
+                    ❌ Eliminar
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => agendarTurno(hora)}
+                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
+                  >
+                    ✅ Agendar
+                  </Button>
+                )}
               </div>
-            </Button>
+            </div>
           )
         })}
       </div>
 
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
-        <DialogContent>
+        <DialogContent className="bg-gray-900 border-cyan-400/30">
           <DialogHeader>
-            <DialogTitle>Agendar turno para {horaSeleccionada}</DialogTitle>
+            <DialogTitle className="text-white">Agendar turno para {horaSeleccionada}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="nombre">Nombre completo</Label>
+              <Label htmlFor="nombre" className="text-white">
+                Tu nombre:
+              </Label>
               <Input
                 id="nombre"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ingresa tu nombre"
+                className="bg-gray-800 border-cyan-400/30 text-white"
               />
             </div>
             <div>
-              <Label htmlFor="numero">Número de WhatsApp</Label>
+              <Label htmlFor="numero" className="text-white">
+                Tu número de WhatsApp:
+              </Label>
               <Input
                 id="numero"
                 value={numero}
                 onChange={(e) => setNumero(e.target.value)}
                 placeholder="Ej: 573167530191"
+                className="bg-gray-800 border-cyan-400/30 text-white"
               />
             </div>
-            <Button onClick={confirmarTurno} className="w-full">
+            <Button onClick={confirmarTurno} className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-bold">
               Confirmar turno
             </Button>
           </div>
