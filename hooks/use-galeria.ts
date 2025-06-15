@@ -11,27 +11,27 @@ export function useGaleria() {
     if (fotosGuardadas) {
       setFotos(JSON.parse(fotosGuardadas))
     } else {
-      // Fotos de ejemplo para mostrar el diseño
+      // Fotos reales de ejemplo con los cortes de Caracas
       const fotosEjemplo: FotoCorte[] = [
         {
           id: "1",
-          url: "/placeholder.svg?height=300&width=300",
-          titulo: "Corte Moderno",
-          descripcion: "Fade con diseño lateral",
+          url: "/cortes-ejemplo.png",
+          titulo: "Taper Fade con Diseño",
+          descripcion: "Desvanecimiento clásico con diseño personalizado en la nuca. Estilo moderno y limpio.",
           fecha: new Date().toLocaleDateString(),
         },
         {
           id: "2",
-          url: "/placeholder.svg?height=300&width=300",
-          titulo: "Corte Clásico",
-          descripcion: "Estilo tradicional con barba",
+          url: "/cortes-ejemplo.png",
+          titulo: "Corte con Líneas Laterales",
+          descripcion: "Fade con diseños geométricos en los laterales. Perfecto para un look urbano y fresco.",
           fecha: new Date().toLocaleDateString(),
         },
         {
           id: "3",
-          url: "/placeholder.svg?height=300&width=300",
-          titulo: "Diseño Creativo",
-          descripcion: "Corte con líneas artísticas",
+          url: "/cortes-ejemplo.png",
+          titulo: "Classic Fade Premium",
+          descripcion: "Desvanecimiento profesional y elegante. El corte perfecto para cualquier ocasión.",
           fecha: new Date().toLocaleDateString(),
         },
       ]
