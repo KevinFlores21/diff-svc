@@ -70,10 +70,119 @@ export function useGaleria() {
     })
   }
 
+  // Función para crear respaldo de todas las fotos
+  const crearRespaldo = () => {
+    const respaldo = {
+      fecha: new Date().toISOString(),
+      fotos: fotos,
+      version: "1.0",
+    }
+
+    const dataStr = JSON.stringify(respaldo, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `galeria-respaldo-${new Date().toISOString().split("T")[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    return respaldo
+  }
+
+  // Función para restaurar desde respaldo
+  const restaurarRespaldo = (archivo: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          const respaldo = JSON.parse(e.target?.result as string)
+          if (respaldo.fotos && Array.isArray(respaldo.fotos)) {
+            guardarFotos(respaldo.fotos)
+            resolve()
+          } else {
+            reject(new Error("Formato de respaldo inválido"))
+          }
+        } catch (error) {
+          reject(error)
+        }
+      }
+      reader.onerror = reject
+      reader.readAsText(archivo)
+    })
+  }
+
+  // Función para exportar fotos como HTML estático
+  const exportarComoHTML = () => {
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galería Caracas Alcon Barber</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #00ffff; margin-bottom: 30px; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .photo { background: #2a2a2a; border-radius: 10px; overflow: hidden; border: 1px solid #00ffff; }
+        .photo img { width: 100%; height: 250px; object-fit: cover; }
+        .photo-info { padding: 15px; }
+        .photo-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #00ffff; }
+        .photo-desc { font-size: 14px; color: #ccc; margin-bottom: 8px; }
+        .photo-date { font-size: 12px; color: #888; }
+        .footer { text-align: center; margin-top: 40px; padding: 20px; border-top: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💈 Galería Caracas Alcon Barber</h1>
+        <div class="gallery">
+            ${fotos
+              .map(
+                (foto) => `
+                <div class="photo">
+                    <img src="${foto.url}" alt="${foto.titulo}">
+                    <div class="photo-info">
+                        <div class="photo-title">${foto.titulo}</div>
+                        <div class="photo-desc">${foto.descripcion}</div>
+                        <div class="photo-date">📅 ${foto.fecha}</div>
+                    </div>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+        <div class="footer">
+            <p>Galería generada el ${new Date().toLocaleDateString()}</p>
+            <p>💈 Caracas Alcon Barber - Calidad, Estilo y Flow</p>
+        </div>
+    </div>
+</body>
+</html>`
+
+    const blob = new Blob([html], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `galeria-caracas-alcon-barber-${new Date().toISOString().split("T")[0]}.html`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return {
     fotos,
     agregarFoto,
     eliminarFoto,
     convertirArchivoABase64,
+    crearRespaldo,
+    restaurarRespaldo,
+    exportarComoHTML,
   }
 }

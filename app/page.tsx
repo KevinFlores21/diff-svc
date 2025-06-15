@@ -13,7 +13,15 @@ import GaleriaTrabajos from "@/components/galeria-trabajos"
 
 export default function Home() {
   const { turnos, diaActual, agregarTurno, eliminarTurno, obtenerHorariosDisponibles } = useTurnos()
-  const { fotos, agregarFoto, eliminarFoto, convertirArchivoABase64 } = useGaleria()
+  const {
+    fotos,
+    agregarFoto,
+    eliminarFoto,
+    convertirArchivoABase64,
+    crearRespaldo,
+    restaurarRespaldo,
+    exportarComoHTML,
+  } = useGaleria()
 
   const compartir = () => {
     const urlPagina = window.location.href
@@ -67,6 +75,9 @@ export default function Home() {
             onAgregarFoto={agregarFoto}
             onEliminarFoto={eliminarFoto}
             onConvertirArchivo={convertirArchivoABase64}
+            onCrearRespaldo={crearRespaldo}
+            onRestaurarRespaldo={restaurarRespaldo}
+            onExportarHTML={exportarComoHTML}
           />
 
           {/* Agendar Turnos */}

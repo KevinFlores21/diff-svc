@@ -17,6 +17,9 @@ interface PanelAdminProps {
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
   onEliminarFoto: (id: string) => void
   onConvertirArchivo: (archivo: File) => Promise<string>
+  onCrearRespaldo: () => any
+  onRestaurarRespaldo: (archivo: File) => Promise<void>
+  onExportarHTML: () => void
 }
 
 export default function PanelAdmin({
@@ -26,6 +29,9 @@ export default function PanelAdmin({
   onAgregarFoto,
   onEliminarFoto,
   onConvertirArchivo,
+  onCrearRespaldo,
+  onRestaurarRespaldo,
+  onExportarHTML,
 }: PanelAdminProps) {
   const [clave, setClave] = useState("")
   const [autenticado, setAutenticado] = useState(false)
@@ -194,6 +200,9 @@ export default function PanelAdmin({
                 onAgregarFoto={onAgregarFoto}
                 onEliminarFoto={onEliminarFoto}
                 onConvertirArchivo={onConvertirArchivo}
+                onCrearRespaldo={onCrearRespaldo}
+                onRestaurarRespaldo={onRestaurarRespaldo}
+                onExportarHTML={onExportarHTML}
                 autenticado={autenticado}
               />
             </div>

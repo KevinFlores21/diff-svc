@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Plus, Trash2, Upload, ImageIcon, Camera, X } from "lucide-react"
+import { Plus, Trash2, Upload, ImageIcon, Camera, X, Download, FileUp, Save, Globe } from "lucide-react"
 import Image from "next/image"
 import type { FotoCorte } from "@/types"
 
@@ -16,6 +16,9 @@ interface PanelGaleriaProps {
   onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
   onEliminarFoto: (id: string) => void
   onConvertirArchivo: (archivo: File) => Promise<string>
+  onCrearRespaldo: () => any
+  onRestaurarRespaldo: (archivo: File) => Promise<void>
+  onExportarHTML: () => void
   autenticado: boolean
 }
 
@@ -24,14 +27,20 @@ export default function PanelGaleria({
   onAgregarFoto,
   onEliminarFoto,
   onConvertirArchivo,
+  onCrearRespaldo,
+  onRestaurarRespaldo,
+  onExportarHTML,
   autenticado,
 }: PanelGaleriaProps) {
   const [dialogAbierto, setDialogAbierto] = useState(false)
+  const [dialogRespaldo, setDialogRespaldo] = useState(false)
   const [imagenSeleccionada, setImagenSeleccionada] = useState<string>("")
   const [titulo, setTitulo] = useState("")
   const [descripcion, setDescripcion] = useState("")
   const [cargandoImagen, setCargandoImagen] = useState(false)
+  const [cargandoRespaldo, setCargandoRespaldo] = useState(false)
   const inputFileRef = useRef<HTMLInputElement>(null)
+  const inputRespaldoRef = useRef<HTMLInputElement>(null)
 
   const manejarSeleccionArchivo = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = event.target.files?.[0]
@@ -61,8 +70,37 @@ export default function PanelGaleria({
     }
   }
 
+  const manejarRestaurarRespaldo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = event.target.files?.[0]
+    if (!archivo) return
+
+    if (!archivo.name.endsWith(".json")) {
+      alert("Por favor selecciona un archivo de respaldo válido (.json)")
+      return
+    }
+
+    setCargandoRespaldo(true)
+    try {
+      await onRestaurarRespaldo(archivo)
+      alert("¡Respaldo restaurado exitosamente!")
+      setDialogRespaldo(false)
+    } catch (error) {
+      alert("Error al restaurar el respaldo. Verifica que el archivo sea válido.")
+      console.error("Error:", error)
+    } finally {
+      setCargandoRespaldo(false)
+      if (inputRespaldoRef.current) {
+        inputRespaldoRef.current.value = ""
+      }
+    }
+  }
+
   const abrirSelectorArchivos = () => {
     inputFileRef.current?.click()
+  }
+
+  const abrirSelectorRespaldo = () => {
+    inputRespaldoRef.current?.click()
   }
 
   const limpiarImagen = () => {
@@ -103,20 +141,50 @@ export default function PanelGaleria({
     }
   }
 
+  const crearRespaldo = () => {
+    try {
+      onCrearRespaldo()
+      alert("¡Respaldo creado exitosamente! El archivo se ha descargado.")
+    } catch (error) {
+      alert("Error al crear el respaldo.")
+      console.error("Error:", error)
+    }
+  }
+
+  const exportarHTML = () => {
+    try {
+      onExportarHTML()
+      alert("¡Galería exportada como página web! El archivo HTML se ha descargado.")
+    } catch (error) {
+      alert("Error al exportar la galería.")
+      console.error("Error:", error)
+    }
+  }
+
   if (!autenticado) return null
 
   return (
     <div className="mt-6 border-t border-cyan-400/30 pt-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Gestionar Galería</h3>
-        <Button
-          onClick={() => setDialogAbierto(true)}
-          className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
-          size="sm"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Agregar Foto
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setDialogRespaldo(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold"
+            size="sm"
+          >
+            <Save className="h-4 w-4 mr-1" />
+            Guardar
+          </Button>
+          <Button
+            onClick={() => setDialogAbierto(true)}
+            className="bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Agregar
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3 max-h-64 overflow-y-auto">
@@ -149,8 +217,9 @@ export default function PanelGaleria({
         )}
       </div>
 
-      {/* Input oculto para seleccionar archivos */}
+      {/* Inputs ocultos */}
       <input ref={inputFileRef} type="file" accept="image/*" onChange={manejarSeleccionArchivo} className="hidden" />
+      <input ref={inputRespaldoRef} type="file" accept=".json" onChange={manejarRestaurarRespaldo} className="hidden" />
 
       {/* Dialog para agregar foto */}
       <Dialog open={dialogAbierto} onOpenChange={setDialogAbierto}>
@@ -257,6 +326,69 @@ export default function PanelGaleria({
                 Agregar Foto
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para opciones de respaldo */}
+      <Dialog open={dialogRespaldo} onOpenChange={setDialogRespaldo}>
+        <DialogContent className="bg-gray-900 border-cyan-400/30 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">💾 Guardar Galería</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-white/70 text-sm">
+              Guarda tus fotos para que no se pierdan. Puedes crear un respaldo o exportar como página web.
+            </p>
+
+            <div className="space-y-3">
+              <Button onClick={crearRespaldo} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold">
+                <Download className="h-4 w-4 mr-2" />
+                Descargar Respaldo (.json)
+              </Button>
+
+              <Button onClick={exportarHTML} className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold">
+                <Globe className="h-4 w-4 mr-2" />
+                Exportar como Página Web (.html)
+              </Button>
+
+              <div className="border-t border-cyan-400/30 pt-3">
+                <p className="text-white/70 text-sm mb-2">Restaurar desde respaldo:</p>
+                <Button
+                  onClick={abrirSelectorRespaldo}
+                  disabled={cargandoRespaldo}
+                  variant="outline"
+                  className="w-full border-cyan-400/30 text-white hover:bg-cyan-400/10"
+                >
+                  {cargandoRespaldo ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Restaurando...
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="h-4 w-4 mr-2" />
+                      Cargar Respaldo
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="bg-yellow-900/30 border border-yellow-600/30 rounded p-3">
+              <p className="text-yellow-200 text-xs">
+                💡 <strong>Consejo:</strong> Crea respaldos regularmente para no perder tus fotos. El archivo HTML te
+                permite tener una página web independiente con tu galería.
+              </p>
+            </div>
+
+            <Button
+              onClick={() => setDialogRespaldo(false)}
+              variant="outline"
+              className="w-full border-cyan-400/30 text-white hover:bg-cyan-400/10"
+            >
+              Cerrar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
