@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useTurnos } from "@/hooks/use-turnos"
 import AgendarTurnos from "@/components/agendar-turnos"
 import Precios from "@/components/precios"
+import MetodosPago from "@/components/metodos-pago"
 import Encuesta from "@/components/encuesta"
 import PanelAdmin from "@/components/panel-admin"
 import Image from "next/image"
@@ -91,6 +92,11 @@ export default function Home() {
 
           {/* Precios */}
           <Precios />
+
+          {/* Sistema de Pagos */}
+          <div data-section="pagos">
+            <MetodosPago />
+          </div>
 
           {/* Galería de Trabajos */}
           <GaleriaTrabajos fotos={fotos} />

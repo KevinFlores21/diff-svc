@@ -17,3 +17,21 @@ export interface FotoCorte {
   descripcion: string
   fecha: string
 }
+
+export interface ServicioPago {
+  id: string
+  nombre: string
+  precio: number
+  descripcion: string
+  duracion: string
+  popular?: boolean
+}
+
+export interface MetodoPago {
+  id: string
+  nombre: string
+  tipo: "nequi" | "bancolombia" | "efectivo"
+  numero?: string
+  qr?: string
+  instrucciones: string
+}
