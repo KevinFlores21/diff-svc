@@ -32,19 +32,31 @@ export function useTurnos() {
   const [diaActual, setDiaActual] = useState<DiasSemana>("lunes")
 
   useEffect(() => {
+    // Obtener el día actual
     const hoy = new Date()
     const dia = DIAS_SEMANA[hoy.getDay()]
     setDiaActual(dia)
 
-    const turnosGuardados = localStorage.getItem("turnos")
-    if (turnosGuardados) {
-      setTurnos(JSON.parse(turnosGuardados))
+    // Cargar turnos guardados
+    try {
+      const turnosGuardados = localStorage.getItem("turnos")
+      if (turnosGuardados) {
+        const turnosParsed = JSON.parse(turnosGuardados)
+        setTurnos(turnosParsed)
+      }
+    } catch (error) {
+      console.error("Error al cargar turnos:", error)
+      setTurnos({})
     }
-  }, [])
+  }, []) // Array de dependencias vacío para que solo se ejecute una vez
 
   const guardarTurnos = (nuevosTurnos: Record<string, string>) => {
-    setTurnos(nuevosTurnos)
-    localStorage.setItem("turnos", JSON.stringify(nuevosTurnos))
+    try {
+      setTurnos(nuevosTurnos)
+      localStorage.setItem("turnos", JSON.stringify(nuevosTurnos))
+    } catch (error) {
+      console.error("Error al guardar turnos:", error)
+    }
   }
 
   const agregarTurno = (hora: string, nombre: string, numero: string) => {

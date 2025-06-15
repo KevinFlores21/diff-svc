@@ -38,21 +38,26 @@ export function useConfiguracion() {
   const [configuracion, setConfiguracion] = useState<ConfiguracionApp>(CONFIGURACION_INICIAL)
 
   useEffect(() => {
-    const configGuardada = localStorage.getItem("configuracion-app")
-    if (configGuardada) {
-      try {
+    try {
+      const configGuardada = localStorage.getItem("configuracion-app")
+      if (configGuardada) {
         const config = JSON.parse(configGuardada)
+        // Merge con configuración inicial para asegurar que tenga todas las propiedades
         setConfiguracion({ ...CONFIGURACION_INICIAL, ...config })
-      } catch (error) {
-        console.error("Error al cargar configuración:", error)
-        setConfiguracion(CONFIGURACION_INICIAL)
       }
+    } catch (error) {
+      console.error("Error al cargar configuración:", error)
+      setConfiguracion(CONFIGURACION_INICIAL)
     }
-  }, [])
+  }, []) // Array de dependencias vacío
 
   const guardarConfiguracion = (nuevaConfig: ConfiguracionApp) => {
-    setConfiguracion(nuevaConfig)
-    localStorage.setItem("configuracion-app", JSON.stringify(nuevaConfig))
+    try {
+      setConfiguracion(nuevaConfig)
+      localStorage.setItem("configuracion-app", JSON.stringify(nuevaConfig))
+    } catch (error) {
+      console.error("Error al guardar configuración:", error)
+    }
   }
 
   const actualizarNumeroNequi = (numero: string) => {

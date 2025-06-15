@@ -8,7 +8,7 @@ export function useGaleria() {
 
   useEffect(() => {
     cargarFotosGuardadas()
-  }, [])
+  }, []) // Array de dependencias vacío
 
   const cargarFotosGuardadas = () => {
     try {
@@ -53,6 +53,7 @@ export function useGaleria() {
       }
     } catch (error) {
       console.error("Error al cargar fotos:", error)
+      setFotos([])
     }
   }
 
@@ -173,6 +174,9 @@ export function useGaleria() {
 
   // Función para exportar fotos como HTML estático
   const exportarComoHTML = () => {
+    const fotosDestacadas = obtenerFotosDestacadas()
+    const fotosAdicionales = obtenerFotosAdicionales()
+
     const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -203,7 +207,7 @@ export function useGaleria() {
         <div class="destacadas">
             <h2 class="section-title">✨ Cortes Destacados</h2>
             <div class="gallery">
-                ${obtenerFotosDestacadas()
+                ${fotosDestacadas
                   .map(
                     (foto) => `
                     <div class="photo">
@@ -221,12 +225,12 @@ export function useGaleria() {
         </div>
 
         ${
-          obtenerFotosAdicionales().length > 0
+          fotosAdicionales.length > 0
             ? `
         <div>
             <h2 class="section-title">📷 Más Trabajos</h2>
             <div class="gallery">
-                ${obtenerFotosAdicionales()
+                ${fotosAdicionales
                   .map(
                     (foto) => `
                     <div class="photo">
