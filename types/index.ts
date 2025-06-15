@@ -30,8 +30,10 @@ export interface ServicioPago {
 export interface MetodoPago {
   id: string
   nombre: string
-  tipo: "nequi" | "bancolombia" | "efectivo"
+  tipo: "nequi" | "bancolombia" | "pse" | "efectivo"
   numero?: string
   qr?: string
   instrucciones: string
+  logo?: string
+  enlaceDirecto?: string
 }

@@ -11,6 +11,7 @@ import PanelAdmin from "@/components/panel-admin"
 import Image from "next/image"
 import { useGaleria } from "@/hooks/use-galeria"
 import GaleriaTrabajos from "@/components/galeria-trabajos"
+import MetodosPagoRapido from "@/components/metodos-pago-rapido"
 
 export default function Home() {
   const { turnos, diaActual, agregarTurno, eliminarTurno, obtenerHorariosDisponibles } = useTurnos()
@@ -92,6 +93,9 @@ export default function Home() {
 
           {/* Precios */}
           <Precios />
+
+          {/* Acceso rápido a pagos */}
+          <MetodosPagoRapido />
 
           {/* Sistema de Pagos */}
           <div data-section="pagos">

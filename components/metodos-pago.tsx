@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CreditCard, Smartphone, Banknote, Copy, Check, ExternalLink } from "lucide-react"
+import { CreditCard, Banknote, Copy, Check, ExternalLink, Globe } from "lucide-react"
+import Image from "next/image"
 import type { ServicioPago, MetodoPago } from "@/types"
 
 const SERVICIOS: ServicioPago[] = [
@@ -40,14 +41,26 @@ const METODOS_PAGO: MetodoPago[] = [
     nombre: "Nequi",
     tipo: "nequi",
     numero: "3167530191",
+    logo: "/nequi-logo.png",
     instrucciones: "Envía el pago a este número de Nequi y comparte el comprobante por WhatsApp",
+    enlaceDirecto: "https://nequi.com.co/",
   },
   {
     id: "bancolombia",
     nombre: "Bancolombia",
     tipo: "bancolombia",
     numero: "12345678901",
+    logo: "/bancolombia-logo.png",
     instrucciones: "Transfiere a esta cuenta de ahorros Bancolombia y envía el comprobante",
+    enlaceDirecto: "https://www.bancolombia.com/personas",
+  },
+  {
+    id: "pse",
+    nombre: "PSE - Pagos Seguros en Línea",
+    tipo: "pse",
+    logo: "/pse-logo.png",
+    instrucciones: "Paga desde cualquier banco colombiano de forma segura y rápida",
+    enlaceDirecto: "https://www.pse.com.co/",
   },
   {
     id: "efectivo",
@@ -94,8 +107,21 @@ export default function MetodosPago() {
       return
     }
 
-    const mensaje = `🛒 SOLICITUD DE PAGO
-    
+    let mensaje = ""
+
+    if (metodoSeleccionado.tipo === "pse") {
+      mensaje = `💳 SOLICITUD DE PAGO PSE
+
+Servicio: ${servicioSeleccionado.nombre}
+Precio: ${formatearPrecio(servicioSeleccionado.precio)}
+Cliente: ${nombreCliente}
+WhatsApp: ${numeroCliente}
+Método: PSE (Pagos Seguros en Línea)
+
+Quiero pagar a través de PSE. Por favor envíame el enlace de pago seguro.`
+    } else {
+      mensaje = `🛒 SOLICITUD DE PAGO
+
 Servicio: ${servicioSeleccionado.nombre}
 Precio: ${formatearPrecio(servicioSeleccionado.precio)}
 Cliente: ${nombreCliente}
@@ -105,6 +131,7 @@ Método de pago: ${metodoSeleccionado.nombre}
 ${metodoSeleccionado.tipo !== "efectivo" ? `Número para transferir: ${metodoSeleccionado.numero}` : ""}
 
 Por favor confirma la disponibilidad y procede con el pago.`
+    }
 
     window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
 
@@ -117,16 +144,33 @@ Por favor confirma la disponibilidad y procede con el pago.`
     alert("Solicitud enviada. Te contactaremos para confirmar el pago y la cita.")
   }
 
-  const abrirNequi = () => {
-    if (metodoSeleccionado?.numero) {
-      // Intenta abrir la app de Nequi
-      window.open(`nequi://send?phone=${metodoSeleccionado.numero}&amount=${servicioSeleccionado?.precio}`, "_self")
-      // Fallback a WhatsApp si no se puede abrir Nequi
-      setTimeout(() => {
-        const mensaje = `Quiero pagar ${formatearPrecio(servicioSeleccionado?.precio || 0)} por ${servicioSeleccionado?.nombre} vía Nequi al ${metodoSeleccionado.numero}`
-        window.open(`https://wa.me/573167530191?text=${encodeURIComponent(mensaje)}`, "_blank")
-      }, 1000)
+  const abrirEnlaceDirecto = () => {
+    if (metodoSeleccionado?.enlaceDirecto) {
+      if (metodoSeleccionado.tipo === "nequi") {
+        // Intenta abrir la app de Nequi primero
+        window.open(`nequi://send?phone=${metodoSeleccionado.numero}&amount=${servicioSeleccionado?.precio}`, "_self")
+        // Fallback a la web de Nequi
+        setTimeout(() => {
+          window.open(metodoSeleccionado.enlaceDirecto, "_blank")
+        }, 1000)
+      } else {
+        window.open(metodoSeleccionado.enlaceDirecto, "_blank")
+      }
     }
+  }
+
+  const generarEnlacePSE = () => {
+    if (!servicioSeleccionado || !nombreCliente) return "#"
+
+    // Simulación de enlace PSE (en producción sería un enlace real de PSE)
+    const parametros = new URLSearchParams({
+      amount: servicioSeleccionado.precio.toString(),
+      description: `${servicioSeleccionado.nombre} - Caracas Alcon Barber`,
+      customer_name: nombreCliente,
+      customer_phone: numeroCliente,
+    })
+
+    return `https://checkout.pse.com.co/payment?${parametros.toString()}`
   }
 
   return (
@@ -134,6 +178,14 @@ Por favor confirma la disponibilidad y procede con el pago.`
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold mb-2">💰 Precios y Pagos</h2>
         <p className="text-white/70">Elige tu servicio y paga de forma fácil y segura</p>
+        <div className="flex justify-center items-center gap-4 mt-4">
+          <div className="flex items-center gap-2">
+            <Image src="/nequi-logo.png" alt="Nequi" width={30} height={30} className="rounded" />
+            <Image src="/bancolombia-logo.png" alt="Bancolombia" width={30} height={30} className="rounded" />
+            <Image src="/pse-logo.png" alt="PSE" width={30} height={30} className="rounded" />
+            <span className="text-white/60 text-sm">Métodos seguros</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -230,15 +282,27 @@ Por favor confirma la disponibilidad y procede con el pago.`
                       onClick={() => setMetodoSeleccionado(metodo)}
                     >
                       <div className="flex items-center gap-3">
-                        {metodo.tipo === "nequi" && <Smartphone className="h-5 w-5 text-purple-400" />}
-                        {metodo.tipo === "bancolombia" && <CreditCard className="h-5 w-5 text-yellow-400" />}
-                        {metodo.tipo === "efectivo" && <Banknote className="h-5 w-5 text-green-400" />}
+                        {metodo.logo ? (
+                          <div className="w-8 h-8 relative flex-shrink-0">
+                            <Image
+                              src={metodo.logo || "/placeholder.svg"}
+                              alt={metodo.nombre}
+                              fill
+                              className="object-contain rounded"
+                            />
+                          </div>
+                        ) : (
+                          <>{metodo.tipo === "efectivo" && <Banknote className="h-5 w-5 text-green-400" />}</>
+                        )}
                         <div className="flex-1">
                           <p className="text-white font-medium">{metodo.nombre}</p>
                           {metodo.numero && (
                             <p className="text-white/70 text-sm">
                               {metodo.tipo === "nequi" ? "Nequi:" : "Cuenta:"} {metodo.numero}
                             </p>
+                          )}
+                          {metodo.tipo === "pse" && (
+                            <p className="text-green-400 text-sm">✅ Todos los bancos colombianos</p>
                           )}
                         </div>
                       </div>
@@ -256,7 +320,7 @@ Por favor confirma la disponibilidad y procede con el pago.`
                   <p className="text-blue-100 text-sm mb-3">{metodoSeleccionado.instrucciones}</p>
 
                   {metodoSeleccionado.numero && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-3">
                       <Input
                         value={metodoSeleccionado.numero}
                         readOnly
@@ -270,9 +334,34 @@ Por favor confirma la disponibilidad y procede con el pago.`
                       >
                         {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
-                      {metodoSeleccionado.tipo === "nequi" && (
-                        <Button onClick={abrirNequi} size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-                          <ExternalLink className="h-4 w-4" />
+                    </div>
+                  )}
+
+                  {metodoSeleccionado.enlaceDirecto && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={abrirEnlaceDirecto}
+                        size="sm"
+                        className={`flex-1 text-white font-bold ${
+                          metodoSeleccionado.tipo === "nequi"
+                            ? "bg-purple-600 hover:bg-purple-700"
+                            : metodoSeleccionado.tipo === "bancolombia"
+                              ? "bg-yellow-600 hover:bg-yellow-700"
+                              : "bg-blue-600 hover:bg-blue-700"
+                        }`}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Abrir {metodoSeleccionado.nombre}
+                      </Button>
+
+                      {metodoSeleccionado.tipo === "pse" && nombreCliente && (
+                        <Button
+                          onClick={() => window.open(generarEnlacePSE(), "_blank")}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                        >
+                          <Globe className="h-4 w-4 mr-1" />
+                          Pago Rápido
                         </Button>
                       )}
                     </div>
@@ -295,7 +384,7 @@ Por favor confirma la disponibilidad y procede con el pago.`
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold"
                 >
                   <CreditCard className="h-4 w-4 mr-1" />
-                  Solicitar Pago
+                  {metodoSeleccionado?.tipo === "pse" ? "Solicitar PSE" : "Solicitar Pago"}
                 </Button>
               </div>
             </div>
