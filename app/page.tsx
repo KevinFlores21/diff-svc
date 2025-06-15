@@ -8,9 +8,12 @@ import Precios from "@/components/precios"
 import Encuesta from "@/components/encuesta"
 import PanelAdmin from "@/components/panel-admin"
 import Image from "next/image"
+import { useGaleria } from "@/hooks/use-galeria"
+import GaleriaTrabajos from "@/components/galeria-trabajos"
 
 export default function Home() {
   const { turnos, diaActual, agregarTurno, eliminarTurno, obtenerHorariosDisponibles } = useTurnos()
+  const { fotos, agregarFoto, eliminarFoto } = useGaleria()
 
   const compartir = () => {
     const urlPagina = window.location.href
@@ -57,7 +60,13 @@ export default function Home() {
           </header>
 
           {/* Panel Admin */}
-          <PanelAdmin turnos={turnos} onEliminarTurno={eliminarTurno} />
+          <PanelAdmin
+            turnos={turnos}
+            onEliminarTurno={eliminarTurno}
+            fotos={fotos}
+            onAgregarFoto={agregarFoto}
+            onEliminarFoto={eliminarFoto}
+          />
 
           {/* Agendar Turnos */}
           <AgendarTurnos
@@ -70,6 +79,9 @@ export default function Home() {
 
           {/* Precios */}
           <Precios />
+
+          {/* Galería de Trabajos */}
+          <GaleriaTrabajos fotos={fotos} />
 
           {/* Encuesta */}
           <Encuesta />

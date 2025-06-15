@@ -7,13 +7,18 @@ import { Textarea } from "@/components/ui/textarea"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings, Trash2, User, Phone, Clock } from "lucide-react"
+import PanelGaleria from "./panel-galeria"
+import type { FotoCorte } from "@/types"
 
 interface PanelAdminProps {
   turnos: Record<string, string>
   onEliminarTurno: (hora: string) => void
+  fotos: FotoCorte[]
+  onAgregarFoto: (foto: Omit<FotoCorte, "id" | "fecha">) => void
+  onEliminarFoto: (id: string) => void
 }
 
-export default function PanelAdmin({ turnos, onEliminarTurno }: PanelAdminProps) {
+export default function PanelAdmin({ turnos, onEliminarTurno, fotos, onAgregarFoto, onEliminarFoto }: PanelAdminProps) {
   const [clave, setClave] = useState("")
   const [autenticado, setAutenticado] = useState(false)
   const [dialogCancelacion, setDialogCancelacion] = useState(false)
@@ -175,6 +180,13 @@ export default function PanelAdmin({ turnos, onEliminarTurno }: PanelAdminProps)
               >
                 Cerrar Sesión
               </Button>
+
+              <PanelGaleria
+                fotos={fotos}
+                onAgregarFoto={onAgregarFoto}
+                onEliminarFoto={onEliminarFoto}
+                autenticado={autenticado}
+              />
             </div>
           )}
         </SheetContent>
